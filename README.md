@@ -160,8 +160,8 @@ watch the re-sort → flip the toggle → flip it back → drag the slider.
 ## Continuing on another machine
 
 ```bash
-git clone https://github.com/jvrdivan/impoundguard-app.git
-cd impoundguard-app
+git clone https://github.com/jvrdivan/ImpoundGuard.git
+cd ImpoundGuard
 npm install
 cp .env.example .env          # add DATABASE_URL
 psql "$DATABASE_URL" -f db/schema.sql

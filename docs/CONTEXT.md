@@ -15,7 +15,7 @@ real time.
 
 ImpoundGuard is a fleet-compliance demo for a hackathon running **Fri 21 – Sat 22 Aug 2026** (theme: solve business problems with AI). Photograph a roadworthy certificate → vision model extracts plate/expiry → the 8-vehicle fleet re-ranks live by combined revenue-at-risk and passenger-safety-risk.
 
-**Repo is `jvrdivan/impoundguard-app`, NOT `impoundguard`.** The obvious name was already taken by an earlier placeholder repo (`jvrdivan/ImpoundGuard`, public, README only) that we deliberately left untouched. Local path: `C:\Coding projects\impoundguard`.
+**This repo is `jvrdivan/ImpoundGuard` — the official submission repo.** Development originally happened in `jvrdivan/impoundguard-app` because `ImpoundGuard` started as an earlier placeholder (public, README only) and the name was already taken. The working app was consolidated back into this repo on 21 Aug so the submission repo is the real thing, not a placeholder. `impoundguard-app` still exists and still works, but this is now the canonical repo going forward.
 
 **Deployed and public: https://impoundguard.vercel.app** — Vercel CLI is already logged in as `jvrdivan-8952`, so `npx vercel --prod --yes` just works. Note the deployment-specific and org-scoped URLs are SSO-protected (302 to vercel.com/sso-api); only the clean production alias is public. The page carries `noindex` because it's link-shareable but shouldn't be crawled before the event.
 
