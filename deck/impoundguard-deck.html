@@ -1,0 +1,797 @@
+<meta charset="utf-8">
+<title>ImpoundGuard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ===========================================================================
+   ImpoundGuard -- pitch deck
+
+   Single-theme by deliberate choice. A deck is projected; it must not flip
+   appearance based on the viewer's OS preference halfway through a pitch.
+   Every colour is therefore painted explicitly from a token, and the body
+   ground is set so the page never borrows the host's background.
+
+   Palette is sampled from the brandmark: navy shield, gold shield, cream
+   road. Semantic colours are lifted verbatim from the product so the deck
+   and the app read as one system.
+   ========================================================================= */
+
+:root {
+  /* Ground -- deep navy, the shield's dark half */
+  --navy-950: #0B1220;
+  --navy-900: #101B2D;
+  --navy-800: #1B2A44;
+  --navy-700: #2A3B57;
+
+  /* Hero accent -- the shield's gold half. The only accent in the deck. */
+  --gold-600: #7E6120;   /* eyebrows on paper: 3.35:1 -> 5.56:1 */
+  --gold-500: #C9A24B;
+  --gold-400: #DCBB72;
+
+  /* Paper -- warm stone, biased toward the gold so it reads as chosen */
+  --paper:     #FBFAF7;
+  --paper-2:   #F2EFE8;
+  --paper-3:   #E4DFD4;
+
+  /* Ink on paper */
+  --ink-900: #14181F;
+  --ink-700: #3C4552;
+  --ink-500: #525A67;    /* small labels on paper-2: 4.11:1 -> 6.06:1 */
+  --ink-400: #5B6472;    /* white on neutral rank chip: 3.02:1 -> 5.98:1 */
+
+  /* Semantics -- identical to the product's tokens */
+  --danger: #DC2626;
+  --warn:   #B45309;
+  --teal:   #0F766E;
+  --violet: #7C3AED;
+
+  --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    'Barlow', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+  --tracking-caps: 0.16em;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--navy-950);
+  color: var(--ink-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Stage: fixed 1600x900, scaled to fit. Guarantees the deck looks
+       identical on a laptop and a projector. --------------------------- */
+#viewport {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+#stage {
+  width: 1600px; height: 900px;
+  /* flex-shrink:0 is load-bearing. #viewport is a flex container, so without
+     it the 1600px stage is shrunk to the viewport width on any screen
+     narrower than 1600px -- the text rewraps into a narrow column, slides run
+     ~3x too tall, and the scale transform compounds the error. The stage must
+     always lay out at exactly 1600x900 and be scaled purely by transform. */
+  flex: none;
+  position: relative;
+  transform-origin: center center;
+  box-shadow: 0 40px 120px rgba(0,0,0,.55);
+}
+
+.slide {
+  position: absolute; inset: 0;
+  display: none;
+  padding: 92px 104px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.slide.is-active { display: flex; flex-direction: column; }
+
+.slide.dark { background: var(--navy-950); color: var(--paper); }
+
+/* --- Road centre-line: the structural motif, taken from the shield ---- */
+.roadline {
+  position: absolute; top: 0; bottom: 0; left: 52px;
+  width: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--gold-500) 0 26px,
+    transparent 26px 46px
+  );
+  opacity: .5;
+}
+.slide.dark .roadline { opacity: .75; }
+
+/* --- Type ------------------------------------------------------------ */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 15px; font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--gold-600);
+  display: flex; align-items: center; gap: 12px;
+}
+.slide.dark .eyebrow { color: var(--gold-500); }
+.eyebrow::before {
+  content: ""; width: 26px; height: 2px;
+  background: currentColor; opacity: .8;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 82px;
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+  max-width: 20ch;
+}
+h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 58px;
+  line-height: 1.06;
+  letter-spacing: -0.024em;
+  text-wrap: balance;
+  max-width: 22ch;
+  margin-top: 22px;
+}
+h2.sm { font-size: 46px; max-width: 26ch; }
+
+.lede {
+  font-size: 25px;
+  line-height: 1.5;
+  color: var(--ink-700);
+  max-width: 62ch;
+  margin-top: 22px;
+  font-weight: 400;
+}
+.slide.dark .lede { color: #B6C0D0; }
+
+.kicker {
+  font-size: 20px; line-height: 1.55; color: var(--ink-500);
+  max-width: 60ch;
+}
+
+strong { font-weight: 600; color: var(--ink-900); }
+.slide.dark strong { color: var(--paper); }
+em { font-style: normal; color: var(--gold-600); font-weight: 600; }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.num  { font-variant-numeric: tabular-nums; }
+
+/* --- Stat blocks ----------------------------------------------------- */
+.stats { display: flex; gap: 56px; margin-top: auto; padding-top: 40px; }
+.stat { display: flex; flex-direction: column; gap: 6px; }
+.stat .v {
+  font-family: var(--font-display);
+  font-size: 62px; font-weight: 700; line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.stat .k {
+  font-family: var(--font-mono);
+  font-size: 13px; letter-spacing: var(--tracking-caps);
+  text-transform: uppercase; color: var(--ink-500);
+}
+.slide.dark .stat .k { color: #7E8AA0; }
+
+/* --- Cover ----------------------------------------------------------- */
+.cover-grid {
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 80px; height: 100%;
+}
+.wordmark {
+  display: flex; align-items: center; gap: 20px;
+}
+.wordmark .wm-text {
+  font-family: var(--font-display);
+  font-size: 46px; letter-spacing: -0.02em; color: var(--paper);
+}
+.wordmark .wm-text b { font-weight: 800; }
+.wordmark .wm-text span { font-weight: 500; opacity: .88; }
+
+.cover-foot {
+  display: flex; gap: 48px; align-items: baseline;
+  border-top: 1px solid rgba(201,162,75,.28);
+  padding-top: 26px; margin-top: 52px;
+}
+.cover-foot div { font-family: var(--font-mono); font-size: 15px; color: #8592A8; }
+.cover-foot b { color: var(--paper); font-weight: 500; }
+
+/* --- Numbered steps (used ONCE -- the loop genuinely is a sequence) ---- */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 34px; margin-top: 52px; }
+.step { border-top: 3px solid var(--paper-3); padding-top: 22px; }
+.step.on { border-top-color: var(--gold-500); }
+.step .n {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  letter-spacing: var(--tracking-caps); color: var(--gold-600);
+}
+.step h3 {
+  font-family: var(--font-display); font-size: 27px; font-weight: 700;
+  margin-top: 12px; letter-spacing: -0.02em;
+}
+.step p { font-size: 17px; line-height: 1.5; color: var(--ink-500); margin-top: 10px; }
+
+/* --- Formula --------------------------------------------------------- */
+.formula {
+  font-family: var(--font-mono);
+  font-size: 34px; font-weight: 500;
+  background: var(--navy-950); color: var(--paper);
+  padding: 30px 38px; border-radius: 14px;
+  margin-top: 34px; display: inline-block;
+  letter-spacing: -0.01em;
+}
+.formula .hl { color: var(--gold-400); }
+.formula .dim { color: #7E8AA0; }
+
+.inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 36px; }
+.input-card { border-left: 3px solid var(--paper-3); padding-left: 20px; }
+.input-card.u { border-left-color: var(--danger); }
+.input-card.r { border-left-color: var(--warn); }
+.input-card.s { border-left-color: var(--teal); }
+.input-card .lbl {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  letter-spacing: var(--tracking-caps); text-transform: uppercase;
+}
+.input-card.u .lbl { color: var(--danger); }
+.input-card.r .lbl { color: var(--warn); }
+.input-card.s .lbl { color: var(--teal); }
+.input-card p { font-size: 18px; line-height: 1.5; color: var(--ink-700); margin-top: 8px; }
+
+/* --- Rank tables (the demo moment + the contrast) --------------------- */
+.two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; margin-top: 40px; }
+.panel { background: var(--paper-2); border-radius: 16px; padding: 28px 30px; }
+.panel.win { background: #FFF; box-shadow: 0 0 0 2px var(--gold-500), 0 18px 40px rgba(11,18,32,.10); }
+.panel-h {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  color: var(--ink-500); display: flex; justify-content: space-between; align-items: center;
+}
+.panel.win .panel-h { color: var(--gold-600); }
+/* gold-600 is tuned for dark-on-paper; on a dark slide the same label
+   needs the light end of the ramp instead (10.16:1 on navy). */
+.slide.dark .panel.win .panel-h { color: var(--gold-400); }
+
+.rank { display: flex; align-items: center; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--paper-3); }
+.rank:last-child { border-bottom: none; }
+.rank .pos {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ink-400); color: #fff;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.rank.hot .pos { background: var(--danger); }
+.rank.mid .pos { background: var(--warn); }
+.rank .who { flex: 1; min-width: 0; }
+.rank .plate { font-family: var(--font-mono); font-size: 17px; font-weight: 600; }
+.rank .name { font-size: 15px; color: var(--ink-500); }
+.rank .meta { text-align: right; font-size: 15px; color: var(--ink-700); white-space: nowrap; }
+.rank .meta b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.rank.spot { background: rgba(201,162,75,.16); border-radius: 10px; padding-left: 12px; padding-right: 12px; margin: 0 -12px; }
+
+.verdict {
+  margin-top: 34px; padding: 24px 30px;
+  border-left: 4px solid var(--gold-500);
+  background: var(--paper-2); border-radius: 0 12px 12px 0;
+  font-size: 24px; line-height: 1.45; color: var(--ink-900); max-width: 92ch;
+}
+.slide.dark .verdict { background: rgba(255,255,255,.05); color: var(--paper); }
+
+/* --- Horizon table --------------------------------------------------- */
+.htable { width: 100%; border-collapse: collapse; margin-top: 36px; }
+.htable th {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  color: var(--ink-500); text-align: right; padding: 0 0 16px; border-bottom: 2px solid var(--paper-3);
+}
+.htable th:first-child { text-align: left; }
+.htable td {
+  padding: 22px 0; border-bottom: 1px solid var(--paper-3);
+  text-align: right; font-size: 30px; font-variant-numeric: tabular-nums;
+  font-family: var(--font-display); font-weight: 600;
+}
+.htable td:first-child {
+  text-align: left; font-family: var(--font-mono); font-size: 19px; font-weight: 500; color: var(--ink-700);
+}
+.htable tr.key td { color: var(--danger); }
+.htable tr.key td:first-child { color: var(--danger); }
+.zero { color: var(--teal); }
+
+/* --- Close ----------------------------------------------------------- */
+.close-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 72px; margin-top: 44px; }
+.list { display: flex; flex-direction: column; gap: 18px; }
+.li { display: flex; gap: 16px; align-items: flex-start; font-size: 21px; line-height: 1.45; }
+.li .tick { color: var(--gold-500); font-size: 20px; line-height: 1.4; }
+.slide.dark .li { color: #C6CFDC; }
+.slide.dark .li b { color: var(--paper); }
+
+.linkbox {
+  border: 1px solid rgba(201,162,75,.35); border-radius: 14px;
+  padding: 26px 28px; background: rgba(201,162,75,.07);
+}
+.linkbox .lab {
+  font-family: var(--font-mono); font-size: 13px; letter-spacing: var(--tracking-caps);
+  text-transform: uppercase; color: var(--gold-500);
+}
+.linkbox .url {
+  font-family: var(--font-mono); font-size: 23px; color: var(--paper);
+  margin-top: 10px; word-break: break-all;
+}
+
+/* --- Chrome: rail, counter, controls --------------------------------- */
+#rail {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 4px;
+  background: rgba(255,255,255,.10); z-index: 40;
+}
+#rail-fill { height: 100%; background: var(--gold-500); transition: width .35s cubic-bezier(.22,1,.36,1); }
+
+#chrome {
+  position: fixed; right: 22px; bottom: 22px; z-index: 50;
+  display: flex; align-items: center; gap: 10px;
+}
+#chrome button, #counter {
+  font-family: var(--font-mono); font-size: 13px;
+  background: rgba(255,255,255,.10); color: #D7DEE9;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 8px; padding: 9px 13px; cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+#chrome button:hover { background: rgba(255,255,255,.2); color: #fff; }
+#chrome button:focus-visible, #notes-close:focus-visible {
+  outline: 2px solid var(--gold-500); outline-offset: 2px;
+}
+#counter { cursor: default; font-variant-numeric: tabular-nums; }
+
+#notes {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+  background: #0F1626; color: #C9D3E2;
+  border-top: 2px solid var(--gold-500);
+  padding: 22px 26px 26px; display: none;
+  font-size: 17px; line-height: 1.55;
+  max-height: 42vh; overflow-y: auto;
+}
+#notes.open { display: block; }
+#notes .nh {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: var(--tracking-caps);
+  text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px;
+  display: flex; justify-content: space-between;
+}
+#notes-close { background: none; border: none; color: #7E8AA0; cursor: pointer; font-family: var(--font-mono); font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #rail-fill { transition: none; }
+}
+
+/* --- Print: one slide per page --------------------------------------- */
+@media print {
+  #chrome, #rail, #notes { display: none !important; }
+  #viewport { position: static; overflow: visible; }
+  #stage { transform: none !important; box-shadow: none; width: 100%; height: auto; }
+  .slide { display: flex !important; flex-direction: column;
+           page-break-after: always; height: 900px; width: 1600px; }
+}
+</style>
+
+<div id="viewport">
+  <div id="stage">
+
+    <!-- ============================ 1 &middot; COVER ======================== -->
+    <section class="slide dark is-active" data-notes="Open on the name and the promise. Don't rush this line &mdash; it is the thesis of the whole build. 'Compliance that knows what's worth protecting.' Then straight into the cost.">
+      <div class="roadline"></div>
+      <div class="cover-grid">
+        <div>
+          <div class="wordmark">
+            <svg width="66" height="66" viewBox="0 0 64 64" role="img" aria-label="ImpoundGuard">
+              <path d="M32 3.5 L5 12 V31.5 C5 46.5 16.5 57.5 32 61.5 L32 52.5 C21.5 49 13.5 41 13.5 31 V18.2 L32 12.4 Z" fill="#1B2A44"/>
+              <path d="M32 3.5 L59 12 V31.5 C59 46.5 47.5 57.5 32 61.5 L32 52.5 C42.5 49 50.5 41 50.5 31 V18.2 L32 12.4 Z" fill="#C9A24B"/>
+              <rect x="35.5" y="26.5" width="15" height="7.5" rx=".5" fill="#C9A24B"/>
+              <path d="M32 20 L39.5 52 L32 47.5 L24.5 52 Z" fill="#F7F4EC"/>
+              <path d="M32 27 L32 44" stroke="#1B2A44" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <div class="wm-text"><b>Impound</b><span>Guard</span></div>
+          </div>
+
+          <h1 style="margin-top:52px;color:var(--paper)">Compliance that knows what&rsquo;s worth protecting.</h1>
+
+          <p class="lede">Photograph a roadworthy certificate. The fleet re-ranks itself in seconds &mdash; by lives at risk as well as rand at risk.</p>
+
+          <div class="cover-foot">
+            <div>FLEET, TRANSPORT &amp; LOGISTICS</div>
+            <div>8 VEHICLES &middot; <b>ZERO HARDWARE</b></div>
+            <div>BUILT IN <b>ONE WEEKEND</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ 2 &middot; THE COST ===================== -->
+    <section class="slide" data-notes="Land the stakes physically. It is not a fine &mdash; the vehicle is taken. Days, sometimes weeks. The driver goes unpaid and the route sits uncovered. Say 'impounded' slowly.">
+      <div class="roadline"></div>
+      <div class="eyebrow">The cost</div>
+      <h2>A missed certificate doesn&rsquo;t cost a fine. It costs the vehicle.</h2>
+      <p class="lede">Pulled over at a roadblock and impounded &mdash; for days, sometimes weeks. The driver goes unpaid. The route sits uncovered. The paperwork that would have caught it in time is in a shoebox in the cab.</p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="v" style="color:var(--danger)">R3 200</div>
+          <div class="k">Top earner, per day off the road</div>
+        </div>
+        <div class="stat">
+          <div class="v" style="color:var(--warn)">14</div>
+          <div class="k">Passengers stranded, per day</div>
+        </div>
+        <div class="stat">
+          <div class="v">Days</div>
+          <div class="k">Not hours &mdash; impound is measured in days</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ 3 &middot; THE GAP ====================== -->
+    <section class="slide" data-notes="This is the human failure the product fixes. Nobody has one view. So the decision defaults to revenue &mdash; and that quietly means the vehicle full of people loses. Pause before the last sentence.">
+      <div class="roadline"></div>
+      <div class="eyebrow">Why it keeps happening</div>
+      <h2>Nobody has one view of what lapses next.</h2>
+      <p class="lede">Certificates live in a shoebox, or scattered across WhatsApp photos nobody ever filed. When money is tight and only one vehicle can be renewed this week, the owner renews whichever earns the most.</p>
+
+      <div class="verdict">
+        That quietly means the vehicle carrying <em>fourteen passengers a day</em> can lose out to the van carrying <em>nobody</em> &mdash; because nothing is weighing safety against revenue. Only memory against panic.
+      </div>
+    </section>
+
+    <!-- ============================ 4 &middot; THE LOOP ===================== -->
+    <section class="slide" data-notes="Four steps, fast. Emphasise that matching is a lookup, not a guess &mdash; the plate is on every certificate. Then hand the judge a certificate and let them photograph it on their own phone.">
+      <div class="roadline"></div>
+      <div class="eyebrow">How it works</div>
+      <h2 class="sm">One photograph closes the loop.</h2>
+
+      <div class="steps">
+        <div class="step on">
+          <div class="n">STEP 01</div>
+          <h3>Photograph</h3>
+          <p>Any phone, any angle. Glare, shadow and a crumpled page are the normal case, not the exception.</p>
+        </div>
+        <div class="step on">
+          <div class="n">STEP 02</div>
+          <h3>Extract</h3>
+          <p>One vision-model call reads the document and returns plate, holder, issue and expiry as structured fields.</p>
+        </div>
+        <div class="step on">
+          <div class="n">STEP 03</div>
+          <h3>Match</h3>
+          <p>The plate is a lookup against the fleet, never a guess. Anything the model misreads is corrected before it commits.</p>
+        </div>
+        <div class="step on">
+          <div class="n">STEP 04</div>
+          <h3>Re-rank</h3>
+          <p>The whole fleet reorders live &mdash; visibly, in front of the room, not on a refresh.</p>
+        </div>
+      </div>
+
+      <div class="verdict" style="margin-top:auto">
+        Strip out the vision call and the owner is back to guessing from memory. The AI is <em>load-bearing</em>, not decoration.
+      </div>
+    </section>
+
+    <!-- ============================ 5 &middot; THE ENGINE =================== -->
+    <section class="slide" data-notes="This is the slide that survives scrutiny. Read the formula out loud &mdash; you can, that is the point. Stress: no language model in the ranking. It is arithmetic, it runs offline, it cannot fail live.">
+      <div class="roadline"></div>
+      <div class="eyebrow">The risk engine</div>
+      <h2 class="sm">A ranking you can read out loud.</h2>
+
+      <div class="formula">
+        score = 100 <span class="dim">&times;</span> <span class="hl">urgency</span>
+        <span class="dim">&times;</span> ( w<span class="dim">&middot;</span><span class="hl">safety</span>
+        <span class="dim">+</span> (1&minus;w)<span class="dim">&middot;</span><span class="hl">revenue</span> )
+      </div>
+
+      <div class="inputs">
+        <div class="input-card u">
+          <div class="lbl">Urgency</div>
+          <p>How close the worst document is to lapsing, ramped over 30 days. Expired pins it to the top.</p>
+        </div>
+        <div class="input-card r">
+          <div class="lbl">Revenue</div>
+          <p>Daily income, relative to the fleet&rsquo;s highest earner.</p>
+        </div>
+        <div class="input-card s">
+          <div class="lbl">Safety</div>
+          <p>Passengers carried daily, relative to the fleet&rsquo;s fullest vehicle.</p>
+        </div>
+      </div>
+
+      <div class="verdict" style="margin-top:auto">
+        Multiplying by urgency is deliberate: a vehicle with months of cover scores near zero no matter what it earns. And <em>w</em> is a slider the owner controls &mdash; the ethics are on screen, not buried in the code.
+      </div>
+    </section>
+
+    <!-- ============================ 6 &middot; THE MOMENT =================== -->
+    <section class="slide" data-notes="THE DEMO. Say nothing while the row moves &mdash; let the room watch it. The taxi was sixth because its certificate was stale and unverified. One photograph and it is first.">
+      <div class="roadline"></div>
+      <div class="eyebrow">The moment</div>
+      <h2 class="sm">One scan. The fleet reorders itself.</h2>
+
+      <div class="two-up">
+        <div class="panel">
+          <div class="panel-h"><span>Before the scan</span><span>RANK</span></div>
+          <div class="rank hot">
+            <div class="pos">1</div>
+            <div class="who"><div class="plate">CA 402-118</div><div class="name">Metro Courier Van</div></div>
+            <div class="meta"><b>0 pax</b>R3 200/day</div>
+          </div>
+          <div class="rank mid">
+            <div class="pos">2</div>
+            <div class="who"><div class="plate">CA 118-902</div><div class="name">CBD Recovery Tow Truck</div></div>
+            <div class="meta"><b>2 pax</b>R2 600/day</div>
+          </div>
+          <div class="rank spot">
+            <div class="pos">6</div>
+            <div class="who"><div class="plate">CA 671-045</div><div class="name">Alex Taxi 14 &mdash; certificate unverified</div></div>
+            <div class="meta"><b>14 pax</b>R1 400/day</div>
+          </div>
+        </div>
+
+        <div class="panel win">
+          <div class="panel-h"><span>After the scan</span><span>RANK</span></div>
+          <div class="rank spot hot">
+            <div class="pos">1</div>
+            <div class="who"><div class="plate">CA 671-045</div><div class="name">Alex Taxi 14 &mdash; 12 days to noncompliance</div></div>
+            <div class="meta"><b>14 pax</b>R1 400/day</div>
+          </div>
+          <div class="rank hot">
+            <div class="pos">2</div>
+            <div class="who"><div class="plate">CA 402-118</div><div class="name">Metro Courier Van</div></div>
+            <div class="meta"><b>0 pax</b>R3 200/day</div>
+          </div>
+          <div class="rank mid">
+            <div class="pos">3</div>
+            <div class="who"><div class="plate">CA 118-902</div><div class="name">CBD Recovery Tow Truck</div></div>
+            <div class="meta"><b>2 pax</b>R2 600/day</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict" style="margin-top:auto">
+        Sixth to first &mdash; and it earns <em>less than half</em> what the van at the top earns.
+      </div>
+    </section>
+
+    <!-- ============================ 7 &middot; THE CONTRAST ================= -->
+    <section class="slide dark" data-notes="The killer slide. Flip the toggle live on the dashboard while you say this. Same scan, same data, one setting changed. A reminder app sends this owner to renew the empty van first. Let that sit.">
+      <div class="roadline"></div>
+      <div class="eyebrow">The difference</div>
+      <h2 class="sm" style="color:var(--paper)">Same scan. Two orders. One of them is wrong.</h2>
+
+      <div class="two-up">
+        <div class="panel" style="background:rgba(255,255,255,.06)">
+          <div class="panel-h" style="color:#8592A8"><span>Sorted by expiry &mdash; what a reminder app shows</span></div>
+          <div class="rank hot" style="border-bottom-color:rgba(255,255,255,.10)">
+            <div class="pos">1</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 402-118</div><div class="name" style="color:#8592A8">Metro Courier Van &middot; 6 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>0 pax</b>carries nobody</div>
+          </div>
+          <div class="rank mid" style="border-bottom-color:rgba(255,255,255,.10)">
+            <div class="pos">2</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 118-902</div><div class="name" style="color:#8592A8">Tow Truck &middot; 9 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>2 pax</b></div>
+          </div>
+          <div class="rank">
+            <div class="pos">3</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 671-045</div><div class="name" style="color:#8592A8">Alex Taxi 14 &middot; 12 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>14 pax</b></div>
+          </div>
+        </div>
+
+        <div class="panel win" style="background:rgba(201,162,75,.10);box-shadow:0 0 0 2px var(--gold-500)">
+          <div class="panel-h"><span>Sorted by risk &mdash; ImpoundGuard</span></div>
+          <div class="rank spot hot" style="background:rgba(201,162,75,.18);border-bottom-color:rgba(255,255,255,.10)">
+            <div class="pos">1</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 671-045</div><div class="name" style="color:#C9C2AE">Alex Taxi 14 &middot; 12 days</div></div>
+            <div class="meta" style="color:#E6DFCB"><b>14 pax</b>every day</div>
+          </div>
+          <div class="rank hot" style="border-bottom-color:rgba(255,255,255,.10)">
+            <div class="pos">2</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 402-118</div><div class="name" style="color:#8592A8">Metro Courier Van &middot; 6 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>0 pax</b></div>
+          </div>
+          <div class="rank mid">
+            <div class="pos">3</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 118-902</div><div class="name" style="color:#8592A8">Tow Truck &middot; 9 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>2 pax</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict" style="margin-top:auto">
+        A reminder app tells this owner to renew the <em>empty van</em> first, because it lapses six days sooner. That is the gap this build closes.
+      </div>
+    </section>
+
+    <!-- ============================ 8 &middot; THE COST OF WAITING ========== -->
+    <section class="slide" data-notes="The number that lands: at seven days the exposure is R16 000 and ZERO passenger trips &mdash; because the only vehicle lapsing that soon carries nobody. Widen to fourteen days and passengers appear. The report derived that on its own.">
+      <div class="roadline"></div>
+      <div class="eyebrow">What waiting costs</div>
+      <h2 class="sm">Exposure, projected forward.</h2>
+
+      <div style="overflow-x:auto">
+        <table class="htable">
+          <thead>
+            <tr>
+              <th>Horizon</th>
+              <th>Vehicles lapsing</th>
+              <th>Revenue at risk</th>
+              <th>Passenger trips hit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="key">
+              <td>Within 7 days</td>
+              <td class="num">1</td>
+              <td class="num">R16 000</td>
+              <td class="num zero">0</td>
+            </tr>
+            <tr>
+              <td>Within 14 days</td>
+              <td class="num">3</td>
+              <td class="num">R39 000</td>
+              <td class="num">30</td>
+            </tr>
+            <tr>
+              <td>Within 30 days</td>
+              <td class="num">8</td>
+              <td class="num">R79 500</td>
+              <td class="num">160</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="verdict" style="margin-top:auto">
+        At seven days the fleet has <em>R16 000</em> exposed and <em>zero</em> passenger trips at stake &mdash; because the only vehicle lapsing that soon carries nobody. That single row is the argument for weighting safety, and the report worked it out on its own.
+      </div>
+    </section>
+
+    <!-- ============================ 9 &middot; PRIVACY ====================== -->
+    <section class="slide" data-notes="Answer the POPIA question before it is asked. Holder names are personal data. There is no database &mdash; that is an architectural fact, not a policy promise. Then say what a real pilot would need.">
+      <div class="roadline"></div>
+      <div class="eyebrow">Privacy by construction</div>
+      <h2 class="sm">Nothing is stored, because there is nowhere to store it.</h2>
+      <p class="lede">Every certificate a judge photographs carries a holder&rsquo;s name &mdash; personal data under POPIA. The fleet, the scans and the names live in the browser tab for the length of the session and nowhere else.</p>
+
+      <div class="inputs" style="grid-template-columns:repeat(2,1fr)">
+        <div class="input-card s">
+          <div class="lbl">True by architecture</div>
+          <p>There is no database, so there is no store to breach, subpoena or forget to purge. &ldquo;Clear session&rdquo; is not a setting &mdash; it is the only state.</p>
+        </div>
+        <div class="input-card r">
+          <div class="lbl">What a pilot would add</div>
+          <p>Real deployment needs an explicit retention period, named access, and consent for holder names before a single document is persisted.</p>
+        </div>
+      </div>
+
+      <div class="verdict" style="margin-top:auto">
+        A demo that cannot leak is a stronger claim than a demo that promises not to.
+      </div>
+    </section>
+
+    <!-- ============================ 10 &middot; THE ASK ===================== -->
+    <section class="slide dark" data-notes="Close on the live link and leave the re-sorted list on screen behind you. Price is per vehicle per month. The wedge against telematics is one line: zero hardware, phone only. Then stop talking.">
+      <div class="roadline"></div>
+      <div class="eyebrow">Where it stands</div>
+      <h2 class="sm" style="color:var(--paper)">Built, deployed, and running on a phone.</h2>
+
+      <div class="close-grid">
+        <div class="list">
+          <div class="li"><span class="tick">&#9679;</span><span><b>The full loop works</b> &mdash; scan, extract, correct, re-rank, live.</span></div>
+          <div class="li"><span class="tick">&#9679;</span><span><b>Zero hardware.</b> Telematics incumbents need a box per vehicle and an installer. This needs a phone that already exists.</span></div>
+          <div class="li"><span class="tick">&#9679;</span><span><b>R49 per vehicle, per month</b> &mdash; roughly one day of one vehicle&rsquo;s earnings, per year.</span></div>
+          <div class="li"><span class="tick">&#9679;</span><span><b>Next:</b> PrDP and COIDA, so the pipeline proves it generalises past one template.</span></div>
+        </div>
+
+        <div class="linkbox">
+          <div class="lab">Live right now</div>
+          <div class="url">impoundguard.vercel.app</div>
+          <p class="kicker" style="color:#8592A8;margin-top:16px;font-size:17px">
+            Open it on your own phone. Photograph the certificate in your hand and watch the fleet reorder.
+          </p>
+        </div>
+      </div>
+
+      <div class="cover-foot" style="margin-top:auto">
+        <div>IMPOUNDGUARD</div>
+        <div>FLEET COMPLIANCE, <b>RE-RANKED BY REAL RISK</b></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div id="rail"><div id="rail-fill"></div></div>
+
+<div id="chrome">
+  <span id="counter">01 / 10</span>
+  <button id="prev" title="Previous slide (&larr;)">&larr;</button>
+  <button id="next" title="Next slide (&rarr;)">&rarr;</button>
+  <button id="notes-btn" title="Speaker notes (N)">Notes</button>
+  <button id="fs-btn" title="Full screen (F)">Full screen</button>
+</div>
+
+<div id="notes">
+  <div class="nh">
+    <span id="notes-label">Speaker notes</span>
+    <button id="notes-close">close &times;</button>
+  </div>
+  <div id="notes-body"></div>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stage   = document.getElementById('stage');
+  var fill    = document.getElementById('rail-fill');
+  var counter = document.getElementById('counter');
+  var notes   = document.getElementById('notes');
+  var notesBody = document.getElementById('notes-body');
+  var notesLabel = document.getElementById('notes-label');
+  var i = 0;
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function render() {
+    slides.forEach(function (s, n) { s.classList.toggle('is-active', n === i); });
+    fill.style.width = ((i + 1) / slides.length * 100) + '%';
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    notesBody.textContent = slides[i].getAttribute('data-notes') || 'No notes for this slide.';
+    notesLabel.textContent = 'Speaker notes / slide ' + pad(i + 1);
+    try { location.hash = String(i + 1); } catch (e) {}
+  }
+
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    render();
+  }
+
+  document.getElementById('next').addEventListener('click', function () { go(i + 1); });
+  document.getElementById('prev').addEventListener('click', function () { go(i - 1); });
+  document.getElementById('notes-btn').addEventListener('click', function () { notes.classList.toggle('open'); });
+  document.getElementById('notes-close').addEventListener('click', function () { notes.classList.remove('open'); });
+
+  document.getElementById('fs-btn').addEventListener('click', function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { notes.classList.toggle('open'); }
+    else if (e.key === 'f' || e.key === 'F') { document.getElementById('fs-btn').click(); }
+    else if (e.key === 'Escape') { notes.classList.remove('open'); }
+  });
+
+  // Scale the fixed 1600x900 stage to fit whatever it is shown on, so the
+  // deck is pixel-identical on a laptop and a projector.
+  function fit() {
+    var s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+</script>
