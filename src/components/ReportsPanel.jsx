@@ -8,9 +8,9 @@
 //     asserting a researched national average — it is a planning
 //     assumption, and saying so is stronger than quietly hard-coding a
 //     number a judge can poke a hole in.
-//  2. Revenue and passenger exposure sit side by side at the same visual
-//     weight, because a report that leads with money alone is the exact
-//     failure mode this product exists to correct.
+//  2. Revenue and uncovered-route exposure sit side by side at the same
+//     visual weight, because a report that leads with money alone is the
+//     exact failure mode this product exists to correct.
 //  3. Export produces a real CSV of real session state, not a stub.
 
 import { useState } from 'react';
@@ -104,9 +104,9 @@ export default function ReportsPanel({ fleet, ranked }) {
               tone="warn"
             />
             <Stat
-              label="Passenger journeys hit"
-              value={summary.passengerJourneys.toLocaleString('en-ZA')}
-              sub="trips disrupted over the same period"
+              label="Uncovered route-days"
+              value={summary.uncoveredRouteDays.toLocaleString('en-ZA')}
+              sub="days a route runs with nothing behind it, same period"
               tone="brand"
             />
           </div>
@@ -163,7 +163,7 @@ export default function ReportsPanel({ fleet, ranked }) {
                     </span>
                     <span className="tabular-nums text-slate-700 text-right">{formatRand(r.lostRevenue)}</span>
                     <span className="tabular-nums text-slate-500 text-right">
-                      {r.passengerJourneys.toLocaleString('en-ZA')} trips
+                      {r.uncoveredRouteDays > 0 ? `${r.uncoveredRouteDays}d uncovered` : 'covered'}
                     </span>
                   </div>
                 ))}

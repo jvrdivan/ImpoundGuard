@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { key: 'fleet', label: 'Fleet', icon: TruckIcon, active: true },
   { key: 'certificates', label: 'Certificates', icon: DocIcon, active: true },
   { key: 'risk', label: 'Risk', icon: RiskIcon, active: true },
+  { key: 'schedule', label: 'Schedule', icon: ScheduleIcon, active: true },
   { key: 'reports', label: 'Reports', icon: ReportIcon, active: true },
   { key: 'settings', label: 'Settings', icon: SettingsIcon, active: true },
 ];
@@ -90,6 +91,14 @@ function RiskIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
       <path d="M12 2 2 20h20L12 2zM12 9v5M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function ScheduleIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
     </svg>
   );
 }

@@ -9,6 +9,7 @@
 import fleetHandler from '../api/fleet.js';
 import resetHandler from '../api/reset.js';
 import { rankFleet } from '../src/lib/risk.js';
+import { buildSchedule } from '../src/lib/schedule.js';
 import { DEMO_SCAN_RESULT } from '../src/data/demoScan.js';
 
 let failures = 0;
@@ -97,6 +98,47 @@ const missing = await call(fleetHandler, { method: 'POST', body: { plate: 'CA 44
 check('missing expiryDate returns 400', missing.statusCode === 400, `got ${missing.statusCode}`);
 const wrongVerb = await call(fleetHandler, { method: 'DELETE' });
 check('unsupported verb returns 405', wrongVerb.statusCode === 405, `got ${wrongVerb.statusCode}`);
+
+console.log('\n--- maintenance scheduler ---');
+const scheduleFleet = await call(fleetHandler, { method: 'GET' }).then((r) => r.body.fleet);
+const schedule = buildSchedule(scheduleFleet, { maintenanceDays: 2, slotsPerWeek: 3, horizonWeeks: 12 });
+
+check('every vehicle is scheduled exactly once (or correctly unschedulable)',
+  (() => {
+    const placed = schedule.weeks.flatMap((w) => w.jobs.map((j) => j.vehicle.id));
+    const unsched = schedule.unschedulable.map((j) => j.vehicle.id);
+    const all = [...placed, ...unsched];
+    return all.length === new Set(all).size && all.length === scheduleFleet.length;
+  })(),
+  `${schedule.weeks.flatMap((w) => w.jobs).length + schedule.unschedulable.length} placements for ${scheduleFleet.length} vehicles`);
+
+check('no week exceeds the slots-per-week cap',
+  schedule.weeks.every((w) => w.jobs.length <= 3));
+
+check('no spare covers two routes in the same week',
+  schedule.weeks.every((w) => {
+    const covers = w.jobs.map((j) => j.cover?.id).filter(Boolean);
+    return new Set(covers).size === covers.length;
+  }));
+
+check('a covering vehicle is never also in maintenance that same week',
+  schedule.weeks.every((w) => {
+    const inMaintenance = new Set(w.jobs.map((j) => j.vehicle.id));
+    return w.jobs.every((j) => !j.cover || !inMaintenance.has(j.cover.id));
+  }));
+
+const busJob = schedule.weeks.flatMap((w) => w.jobs).find((j) => j.vehicle.plate === 'CA 449-102');
+check('the 65-seat bus (zero compatible spares) comes back uncovered',
+  Boolean(busJob) && busJob.route && !busJob.cover,
+  busJob ? `route=${busJob.route?.code}, cover=${busJob.cover?.plate ?? 'none'}` : 'not scheduled');
+
+console.log('\n--- tightening capacity pushes jobs later, never drops them ---');
+const unschedCounts = [1, 2, 3, 6].map(
+  (slotsPerWeek) => buildSchedule(scheduleFleet, { maintenanceDays: 2, slotsPerWeek, horizonWeeks: 12 }).unschedulable.length
+);
+check('unschedulable count is non-increasing as slots-per-week rises',
+  unschedCounts.every((n, i) => i === 0 || n <= unschedCounts[i - 1]),
+  unschedCounts.join(' -> '));
 
 console.log('\n--- restore seed state ---');
 await call(resetHandler, { method: 'POST' });

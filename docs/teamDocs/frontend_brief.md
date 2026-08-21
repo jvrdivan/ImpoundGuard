@@ -11,7 +11,8 @@ Everything below cites real files. If you are asked "show me where," open the fi
 
 The whole product is one screen. A dark sidebar on the left, and a single scrolling column
 on the right holding, in order: KPI cards, a compliance-outlook bar, the risk chart, the
-ranked Action Queue, the Certificates register, the Reports pane, and session settings.
+ranked Action Queue, the Certificates register, the maintenance Schedule pane, the Reports
+pane, and session settings.
 
 The moment a certificate is confirmed, every one of those sections updates at once — and
 the Action Queue physically animates the vehicle sliding to its new position. That
@@ -43,7 +44,7 @@ Every piece of application state is a plain `useState` in `src/App.jsx`:
 ```js
 const [fleet, setFleet]         = useState([]);          // loaded from Postgres
 const [loadState, setLoadState] = useState('loading');   // loading | ready | error
-const [weight, setWeight]       = useState(0.5);         // the MONEY↔LIVES slider
+const [weight, setWeight]       = useState(0.5);         // the MONEY↔CONTINUITY slider
 const [mode, setMode]           = useState('risk');      // 'risk' | 'expiry'
 const [justUpdatedId, ...]      = useState(null);        // drives the 2.2s flash
 const [scanError, ...]          = useState(null);
@@ -74,7 +75,7 @@ fleet and a broken database look identical to a user otherwise.
 
 ### Navigation: there is no router
 
-The six sidebar items don't route anywhere. `handleNavigate` (`App.jsx:95-108`) looks the
+The seven sidebar items don't route anywhere. `handleNavigate` (`App.jsx:95-108`) looks the
 key up in a map of refs and calls `scrollIntoView({ behavior: 'smooth' })`. "Overview" has
 no ref and falls through to `window.scrollTo({ top: 0 })` (`App.jsx:106`).
 
@@ -135,7 +136,8 @@ write returns the new state rather than requiring a refetch.
 
 | File | Lines | Role |
 |---|---|---|
-| `RiskPanel.jsx` | 280 | Hand-drawn SVG revenue-vs-safety quadrant + score breakdown, linked by one shared `hoveredId` |
+| `RiskPanel.jsx` | 306 | Hand-drawn SVG revenue-vs-scarcity quadrant + score breakdown, linked by one shared `hoveredId` |
+| `SchedulePanel.jsx` | 232 | Week-by-week maintenance plan, covered/uncovered per route, two capacity sliders |
 | `ReportsPanel.jsx` | 229 | Forward-looking exposure model, horizon toggle, CSV export |
 | `ActionQueue.jsx` | 188 | The ranked table, the risk/expiry toggle, the animation |
 | `ScanPanel.jsx` | 190 | Capture → downscale → extract → confirm → commit |
@@ -146,7 +148,7 @@ write returns the new state rather than requiring a refetch.
 | `StatCards.jsx` | 97 | Four KPI tiles |
 | `TopBar.jsx` | 60 | Title, date, search, bell, scan CTA |
 | `ComplianceOutlook.jsx` | 58 | Proportional status bar |
-| `RiskExposurePanel.jsx` | 56 | The MONEY↔LIVES slider |
+| `RiskExposurePanel.jsx` | 56 | The MONEY↔CONTINUITY slider |
 | `Logo.jsx` | 52 | Inline SVG brandmark |
 | `PrivacyBanner.jsx` | 47 | POPIA disclosure, expandable |
 | `SessionSettings.jsx` | 41 | Panic-button scan, reset demo data |
