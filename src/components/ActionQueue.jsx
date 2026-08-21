@@ -12,32 +12,51 @@
 // spanning row cannot. The reasoning line is the plain-language answer to
 // "why is this ranked here" and must stay legible at every width.
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { classifyStatus, STATUS } from '../lib/risk';
 
-export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, justUpdatedId }) {
+// Search intent beats the urgency filter: if a search is active, every
+// match it produced is shown regardless of the "hide compliant" default —
+// a fleet manager searching for a specific plate should always find it.
+export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, justUpdatedId, searchActive }) {
+  const [showAll, setShowAll] = useState(false);
+
+  const hiddenCount = ranked.filter((r) => classifyStatus(r) === STATUS.COMPLIANT).length;
+  const visible = searchActive || showAll ? ranked : ranked.filter((r) => classifyStatus(r) !== STATUS.COMPLIANT);
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 className="text-base font-semibold text-slate-900">Action queue</h2>
-        <div className="inline-flex rounded-lg border border-slate-200 p-1 bg-slate-100">
-          <button
-            onClick={() => onModeChange('risk')}
-            className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
-              mode === 'risk' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Risk score
-          </button>
-          <button
-            onClick={() => onModeChange('expiry')}
-            title="What a reminder app would show you: soonest expiry wins, safety not weighed."
-            className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
-              mode === 'expiry' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Expiry order
-          </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {!searchActive && hiddenCount > 0 && (
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="rounded-lg border border-slate-200 px-3 h-9 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+            >
+              {showAll ? 'Hide compliant' : `View all (${hiddenCount} hidden)`}
+            </button>
+          )}
+          <div className="inline-flex rounded-lg border border-slate-200 p-1 bg-slate-100">
+            <button
+              onClick={() => onModeChange('risk')}
+              className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
+                mode === 'risk' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Risk score
+            </button>
+            <button
+              onClick={() => onModeChange('expiry')}
+              title="What a reminder app would show you: soonest expiry wins, safety not weighed."
+              className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
+                mode === 'expiry' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Expiry order
+            </button>
+          </div>
         </div>
       </div>
 
@@ -54,12 +73,12 @@ export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, j
           </div>
 
           <div className="divide-y divide-slate-100">
-            {ranked.length === 0 ? (
+            {visible.length === 0 ? (
               <div className="py-10 text-center text-sm text-slate-500">
-                No vehicles match that search.
+                {ranked.length === 0 ? 'No vehicles match that search.' : 'Nothing urgent right now.'}
               </div>
             ) : (
-              ranked.map((result, i) => (
+              visible.map((result, i) => (
                 <Row
                   key={result.vehicle.id}
                   rank={i + 1}

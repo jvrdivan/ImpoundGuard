@@ -16,6 +16,12 @@
 // fleet's fullest vehicle) — a moral weighting. It's now "how hard is
 // this to replace," computed from real spare capacity in risk.js's
 // scarcityFor(). Same shape of chart, same argument, no longer arbitrary.
+//
+// Chart and list share one filtered set: by default both hide COMPLIANT
+// vehicles (nothing needs attention, no route is at stake), behind a
+// "View all" toggle. Filtering both together, not just the list, keeps
+// the cross-linked hover honest — a row can never be visible without its
+// dot, or vice versa.
 
 import { useState } from 'react';
 import { classifyStatus, STATUS } from '../lib/risk';
@@ -40,7 +46,7 @@ const DOT_RANGE = MAX_DOT_RADIUS - MIN_DOT_RADIUS;
 // label — which is what happened with the 100%-revenue vehicle and the
 // "100%" x-axis tick.
 const PAD = { l: 52, r: 16, t: 16, b: 40 };
-const W = 440;
+const W = 1200;
 const H = 300;
 const PLOT_W = W - PAD.l - PAD.r;
 const PLOT_H = H - PAD.t - PAD.b;
@@ -50,24 +56,35 @@ const toY = (scarcity) => PAD.t + (1 - scarcity) * PLOT_H;
 
 export default function RiskPanel({ ranked, onViewVehicle }) {
   const [hoveredId, setHoveredId] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+
+  const hiddenCount = ranked.filter((r) => classifyStatus(r) === STATUS.COMPLIANT).length;
+  const visible = showAll ? ranked : ranked.filter((r) => classifyStatus(r) !== STATUS.COMPLIANT);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-slate-900">Risk breakdown</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Revenue exposure vs. how hard this vehicle is to replace, dot size = urgency. Hover a vehicle for detail, click to jump to it.
-        </p>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Risk breakdown</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Revenue exposure vs. how hard this vehicle is to replace, dot size = urgency. Hover a vehicle for detail, click to jump to it.
+          </p>
+        </div>
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="shrink-0 rounded-lg border border-slate-200 px-3 h-8 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+          >
+            {showAll ? 'Hide compliant' : `View all (${hiddenCount} hidden)`}
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-6 items-start">
-        <div>
-          <Quadrant ranked={ranked} onViewVehicle={onViewVehicle} hoveredId={hoveredId} onHover={setHoveredId} />
-          <Legend />
-        </div>
+      <Quadrant ranked={visible} onViewVehicle={onViewVehicle} hoveredId={hoveredId} onHover={setHoveredId} />
+      <Legend />
 
-        <div className="space-y-1 xl:pt-1">
-        {ranked.map((r) => (
+      <div className="space-y-1 mt-4">
+        {visible.map((r) => (
           <BreakdownRow
             key={r.vehicle.id}
             result={r}
@@ -78,7 +95,6 @@ export default function RiskPanel({ ranked, onViewVehicle }) {
             onHoverEnd={() => setHoveredId(null)}
           />
         ))}
-        </div>
       </div>
     </div>
   );
