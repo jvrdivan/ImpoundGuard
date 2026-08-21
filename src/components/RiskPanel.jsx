@@ -46,8 +46,15 @@ const DOT_RANGE = MAX_DOT_RADIUS - MIN_DOT_RADIUS;
 // label — which is what happened with the 100%-revenue vehicle and the
 // "100%" x-axis tick.
 const PAD = { l: 52, r: 16, t: 16, b: 40 };
-const W = 1200;
-const H = 300;
+// Wide enough to read as "fills the top of the panel" without going all
+// the way to the panel's edge — a first pass stretched this to W:H 4:1,
+// which flattened the plot area into a thin band and made the scarcity
+// axis's four possible values (spares 0/1/2/3+) read as glitchy perfect
+// rows instead of a normal scatter. Capping the render width (see the
+// max-w-[1000px] wrapper below) and keeping H proportionally taller fixes
+// that without shrinking back to the old cramped size.
+const W = 1000;
+const H = 460;
 const PLOT_W = W - PAD.l - PAD.r;
 const PLOT_H = H - PAD.t - PAD.b;
 
@@ -137,7 +144,7 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
   );
 
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2">
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2 max-w-[1000px]">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto overflow-visible" role="img" aria-label="Revenue vs safety risk quadrant">
         {/* quadrant tints — replace floating text callouts, which collided
             with data points at real coordinates. A colour wash can't collide. */}
