@@ -10,10 +10,10 @@ import Logo, { Wordmark } from './Logo';
 
 const NAV_ITEMS = [
   { key: 'overview', label: 'Overview', icon: HomeIcon, active: true },
+  { key: 'schedule', label: 'Schedule', icon: ScheduleIcon, active: true },
   { key: 'fleet', label: 'Fleet', icon: TruckIcon, active: true },
   { key: 'certificates', label: 'Certificates', icon: DocIcon, active: true },
   { key: 'risk', label: 'Risk', icon: RiskIcon, active: true },
-  { key: 'schedule', label: 'Schedule', icon: ScheduleIcon, active: true },
   { key: 'reports', label: 'Reports', icon: ReportIcon, active: true },
   { key: 'settings', label: 'Settings', icon: SettingsIcon, active: true },
 ];

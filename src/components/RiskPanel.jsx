@@ -16,6 +16,12 @@
 // fleet's fullest vehicle) — a moral weighting. It's now "how hard is
 // this to replace," computed from real spare capacity in risk.js's
 // scarcityFor(). Same shape of chart, same argument, no longer arbitrary.
+//
+// Chart and list share one filtered set: by default both hide COMPLIANT
+// vehicles (nothing needs attention, no route is at stake), behind a
+// "View all" toggle. Filtering both together, not just the list, keeps
+// the cross-linked hover honest — a row can never be visible without its
+// dot, or vice versa.
 
 import { useState } from 'react';
 import { classifyStatus, STATUS } from '../lib/risk';
@@ -40,7 +46,7 @@ const DOT_RANGE = MAX_DOT_RADIUS - MIN_DOT_RADIUS;
 // label — which is what happened with the 100%-revenue vehicle and the
 // "100%" x-axis tick.
 const PAD = { l: 52, r: 16, t: 16, b: 40 };
-const W = 440;
+const W = 1200;
 const H = 300;
 const PLOT_W = W - PAD.l - PAD.r;
 const PLOT_H = H - PAD.t - PAD.b;
@@ -48,26 +54,45 @@ const PLOT_H = H - PAD.t - PAD.b;
 const toX = (revenue) => PAD.l + revenue * PLOT_W;
 const toY = (scarcity) => PAD.t + (1 - scarcity) * PLOT_H;
 
+// scarcityFor() in risk.js is clamp(1 - compatibleSpares / 3, 0, 1) for an
+// integer compatibleSpares of 0/1/2/3+ — so every vehicle's y-position is
+// one of exactly these four values. Vehicles sharing a spare count land on
+// the same row; that's the real data, not a rendering bug. The gridlines
+// below snap to these same four bands instead of a generic 0/50/100 split,
+// so the rows read as the discrete steps they are.
+const SCARCITY_BANDS = [0, 1 / 3, 2 / 3, 1];
+
 export default function RiskPanel({ ranked, onViewVehicle }) {
   const [hoveredId, setHoveredId] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+
+  const hiddenCount = ranked.filter((r) => classifyStatus(r) === STATUS.COMPLIANT).length;
+  const visible = showAll ? ranked : ranked.filter((r) => classifyStatus(r) !== STATUS.COMPLIANT);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-slate-900">Risk breakdown</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Revenue exposure vs. how hard this vehicle is to replace, dot size = urgency. Hover a vehicle for detail, click to jump to it.
-        </p>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Risk breakdown</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Revenue exposure vs. how hard this vehicle is to replace, dot size = urgency. Hover a vehicle for detail, click to jump to it.
+          </p>
+        </div>
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="shrink-0 rounded-lg border border-slate-200 px-3 h-8 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+          >
+            {showAll ? 'Hide compliant' : `View all (${hiddenCount} hidden)`}
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-6 items-start">
-        <div>
-          <Quadrant ranked={ranked} onViewVehicle={onViewVehicle} hoveredId={hoveredId} onHover={setHoveredId} />
-          <Legend />
-        </div>
+      <Quadrant ranked={visible} onViewVehicle={onViewVehicle} hoveredId={hoveredId} onHover={setHoveredId} />
+      <Legend />
 
-        <div className="space-y-1 xl:pt-1">
-        {ranked.map((r) => (
+      <div className="space-y-1 mt-4">
+        {visible.map((r) => (
           <BreakdownRow
             key={r.vehicle.id}
             result={r}
@@ -78,7 +103,6 @@ export default function RiskPanel({ ranked, onViewVehicle }) {
             onHoverEnd={() => setHoveredId(null)}
           />
         ))}
-        </div>
       </div>
     </div>
   );
@@ -128,16 +152,19 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
         <rect x={PAD.l} y={PAD.t} width={PLOT_W / 2} height={PLOT_H / 2} fill="#7c3aed" fillOpacity="0.05" />
         <rect x={PAD.l + PLOT_W / 2} y={PAD.t + PLOT_H / 2} width={PLOT_W / 2} height={PLOT_H / 2} fill="#b45309" fillOpacity="0.05" />
 
-        {/* quarter gridlines for a less empty plot area */}
+        {/* vertical quarter gridlines — revenue is continuous, so these are
+            purely visual spacing, not meaningful bands. */}
         {[0.25, 0.75].map((f) => (
-          <g key={f}>
-            <line x1={toX(f)} y1={PAD.t} x2={toX(f)} y2={PAD.t + PLOT_H} stroke="#eef2f7" />
-            <line x1={PAD.l} y1={toY(f)} x2={PAD.l + PLOT_W} y2={toY(f)} stroke="#eef2f7" />
-          </g>
+          <line key={'vx' + f} x1={toX(f)} y1={PAD.t} x2={toX(f)} y2={PAD.t + PLOT_H} stroke="#eef2f7" />
         ))}
-        {/* 50% divider, slightly stronger */}
         <line x1={toX(0.5)} y1={PAD.t} x2={toX(0.5)} y2={PAD.t + PLOT_H} stroke="#e2e8f0" strokeDasharray="3 3" />
-        <line x1={PAD.l} y1={toY(0.5)} x2={PAD.l + PLOT_W} y2={toY(0.5)} stroke="#e2e8f0" strokeDasharray="3 3" />
+
+        {/* horizontal gridlines at scarcity's actual four possible values —
+            not a generic 0/50/100 split, so the rows of dots that land on
+            them read as intentional steps. */}
+        {SCARCITY_BANDS.slice(1, -1).map((f) => (
+          <line key={'hy' + f} x1={PAD.l} y1={toY(f)} x2={PAD.l + PLOT_W} y2={toY(f)} stroke="#e2e8f0" strokeDasharray="3 3" />
+        ))}
 
         {/* axes */}
         <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PAD.t + PLOT_H} stroke="#cbd5e1" />
@@ -157,7 +184,7 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
             {Math.round(f * 100)}%
           </text>
         ))}
-        {[0, 0.5, 1].map((f) => (
+        {SCARCITY_BANDS.map((f) => (
           <text
             key={'y' + f}
             x={PAD.l - MAX_DOT_RADIUS - 6}

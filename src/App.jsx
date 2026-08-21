@@ -190,8 +190,8 @@ export default function App() {
           <RiskExposurePanel weight={weight} onWeightChange={setWeight} disabled={mode === 'expiry'} />
         </div>
 
-        <div ref={riskRef} className="scroll-mt-4">
-          <RiskPanel ranked={ranked} onViewVehicle={handleViewVehicle} />
+        <div ref={scheduleRef} className="scroll-mt-4">
+          <SchedulePanel fleet={fleet} />
         </div>
 
         {scanError && (
@@ -207,6 +207,7 @@ export default function App() {
             onModeChange={setMode}
             onScanClick={() => setScanPanelOpen(true)}
             justUpdatedId={justUpdatedId}
+            searchActive={query !== ''}
           />
           <NextBestAction
             unassessed={unassessed}
@@ -220,8 +221,8 @@ export default function App() {
           <CertificatesPanel fleet={fleet} onScanClick={() => setScanPanelOpen(true)} />
         </div>
 
-        <div ref={scheduleRef} className="scroll-mt-4">
-          <SchedulePanel fleet={fleet} />
+        <div ref={riskRef} className="scroll-mt-4">
+          <RiskPanel ranked={ranked} onViewVehicle={handleViewVehicle} />
         </div>
 
         <div ref={reportsRef} className="scroll-mt-4">

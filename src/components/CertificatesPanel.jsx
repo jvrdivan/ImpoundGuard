@@ -7,6 +7,7 @@
 // paperwork" (pure dates). Different question, so a document can show
 // EXPIRING here on a vehicle that reads LOW/Compliant over there.
 
+import { useState } from 'react';
 import { DOC_STATUS, buildCertificateRegister } from '../lib/certificates';
 
 const BADGE_BY_DOC_STATUS = {
@@ -16,9 +17,17 @@ const BADGE_BY_DOC_STATUS = {
   [DOC_STATUS.VALID]: { label: 'Valid', className: 'bg-brand/10 text-brand border-brand/25' },
 };
 
+// A row needs attention if its paperwork isn't VALID, or if it IS valid but
+// unverified — an unverified certificate is still a thing the operator
+// asked to keep an eye on, regardless of its expiry date.
+const needsAttention = (row) => row.status !== DOC_STATUS.VALID || row.doc?.verified === false;
+
 export default function CertificatesPanel({ fleet, onScanClick }) {
+  const [showAll, setShowAll] = useState(false);
   const rows = buildCertificateRegister(fleet);
   const unverifiedCount = rows.filter((r) => r.doc && r.doc.verified === false).length;
+  const hiddenCount = rows.filter((r) => !needsAttention(r)).length;
+  const visible = showAll ? rows : rows.filter(needsAttention);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -32,6 +41,14 @@ export default function CertificatesPanel({ fleet, onScanClick }) {
             )}
           </p>
         </div>
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="shrink-0 rounded-lg border border-slate-200 px-3 h-9 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+          >
+            {showAll ? 'Hide valid' : `View all (${hiddenCount} hidden)`}
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto -mx-1 px-1">
@@ -47,9 +64,13 @@ export default function CertificatesPanel({ fleet, onScanClick }) {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {rows.map((row, i) => (
-              <Row key={row.vehicle.id + '-' + (row.doc?.docNumber || 'none') + i} row={row} onScanClick={onScanClick} />
-            ))}
+            {visible.length === 0 ? (
+              <div className="py-10 text-center text-sm text-slate-500">Nothing needs attention right now.</div>
+            ) : (
+              visible.map((row, i) => (
+                <Row key={row.vehicle.id + '-' + (row.doc?.docNumber || 'none') + i} row={row} onScanClick={onScanClick} />
+              ))
+            )}
           </div>
         </div>
       </div>
