@@ -1,13 +1,17 @@
 // src/App.jsx
 //
-// Dashboard shell. Holds all state — there is no backend to sync with, the
-// fleet lives in memory for the session and nowhere else. Scans (real or
-// simulated) mutate it; the risk engine re-derives the ranking on every
-// render; framer-motion animates the reorder in ActionQueue.
+// Dashboard shell. The fleet is loaded from Postgres on mount and written
+// back when a scan is confirmed; the risk engine re-derives the ranking on
+// every render, and framer-motion animates the reorder in ActionQueue.
+//
+// The server returns the updated fleet in the same response as the write, so
+// confirming a scan is one round trip and one state update — the re-rank
+// still lands in a single render rather than write-then-refetch.
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
-import { INITIAL_FLEET, DEMO_SCAN_RESULT, findVehicleByPlate } from './data/fleet';
+import { DEMO_SCAN_RESULT } from './data/demoScan';
+import { fetchFleet, saveDocument, resetDemoData } from './lib/api';
 import { rankFleet } from './lib/risk';
 import { computeFleetStats, computeComplianceBuckets, pickNextBestActions, buildAlerts } from './lib/stats';
 import Sidebar from './components/Sidebar';
@@ -24,18 +28,17 @@ import ReportsPanel from './components/ReportsPanel';
 import SessionSettings from './components/SessionSettings';
 import ScanPanel from './components/ScanPanel';
 
-function cloneFleet(fleet) {
-  return JSON.parse(JSON.stringify(fleet));
-}
-
 export default function App() {
-  const [fleet, setFleet] = useState(() => cloneFleet(INITIAL_FLEET));
+  const [fleet, setFleet] = useState([]);
+  const [loadState, setLoadState] = useState('loading'); // loading | ready | error
+  const [loadError, setLoadError] = useState(null);
   const [weight, setWeight] = useState(0.5);
   const [mode, setMode] = useState('risk');
   const [justUpdatedId, setJustUpdatedId] = useState(null);
   const [scanError, setScanError] = useState(null);
   const [scanPanelOpen, setScanPanelOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const fleetRef = useRef(null);
   const certificatesRef = useRef(null);
@@ -43,43 +46,77 @@ export default function App() {
   const reportsRef = useRef(null);
   const settingsRef = useRef(null);
 
+  // Every state write here happens after the await, never synchronously in
+  // the effect body — loadState already starts at 'loading', so setting it
+  // again on mount would only cost a cascading render.
+  const runLoad = useCallback(async () => {
+    try {
+      setFleet(await fetchFleet());
+      setLoadState('ready');
+    } catch (err) {
+      setLoadError(err.message);
+      setLoadState('error');
+    }
+  }, []);
+
+  // Fetching the fleet from Postgres is exactly the "synchronising with an
+  // external system" case the rule exempts: the state writes happen after the
+  // await, and there is nothing to derive during render because the data is
+  // not on the client yet.
+  useEffect(() => {
+    // eslint-disable-next-line react/set-state-in-effect
+    runLoad();
+  }, [runLoad]);
+
+  const retryLoad = () => {
+    setLoadState('loading');
+    setLoadError(null);
+    runLoad();
+  };
+
   const flash = (id) => {
     setJustUpdatedId(id);
     setTimeout(() => setJustUpdatedId((cur) => (cur === id ? null : cur)), 2200);
   };
 
-  const applyScanResult = useCallback((scanResult) => {
+  const applyScanResult = useCallback(async (scanResult) => {
     setScanError(null);
-    setFleet((prev) => {
-      const next = cloneFleet(prev);
-      const matched = findVehicleByPlate(next, scanResult.plate);
-      if (!matched) {
-        setScanError(`No vehicle on file matches plate "${scanResult.plate}".`);
-        return prev;
-      }
-      matched.documents.push({
-        type: scanResult.docType,
-        docNumber: scanResult.docNumber,
+    setBusy(true);
+    try {
+      const { fleet: next, matchedId } = await saveDocument({
+        plate: scanResult.plate,
+        docType: scanResult.docType,
         holderName: scanResult.holderName,
-        issueDate: scanResult.issueDate,
+        docNumber: scanResult.docNumber,
+        issueDate: scanResult.issueDate || null,
         expiryDate: scanResult.expiryDate,
-        verified: true,
       });
-      flash(matched.id);
-      return next;
-    });
+      setFleet(next);
+      if (matchedId) flash(matchedId);
+    } catch (err) {
+      setScanError(err.message);
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   const handleSimulateScan = () => applyScanResult(DEMO_SCAN_RESULT);
 
-  const handleClearSession = () => {
-    setFleet(cloneFleet(INITIAL_FLEET));
-    setWeight(0.5);
-    setMode('risk');
-    setJustUpdatedId(null);
+  const handleResetDemoData = async () => {
+    setBusy(true);
     setScanError(null);
-    setScanPanelOpen(false);
-    setSearchQuery('');
+    try {
+      setFleet(await resetDemoData());
+      setWeight(0.5);
+      setMode('risk');
+      setJustUpdatedId(null);
+      setScanPanelOpen(false);
+      setSearchQuery('');
+    } catch (err) {
+      setScanError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleScanConfirmed = (fields) => {
@@ -122,6 +159,10 @@ export default function App() {
           .includes(query)
       )
     : ranked;
+
+  if (loadState !== 'ready') {
+    return <FleetGate state={loadState} error={loadError} onRetry={retryLoad} />;
+  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -181,7 +222,11 @@ export default function App() {
         </div>
 
         <div ref={settingsRef} className="scroll-mt-4">
-          <SessionSettings onSimulateScan={handleSimulateScan} onClearSession={handleClearSession} />
+          <SessionSettings
+            onSimulateScan={handleSimulateScan}
+            onResetDemoData={handleResetDemoData}
+            busy={busy}
+          />
         </div>
 
         <footer className="text-xs text-slate-500 pt-2 pb-6">
@@ -201,5 +246,41 @@ export default function App() {
       )}
     </div>
     </MotionConfig>
+  );
+}
+
+/**
+ * Shown until the fleet is on screen. A compliance dashboard that renders an
+ * empty state on a failed load reads as "nothing is at risk", which is the
+ * single most dangerous thing this tool could say by accident — so a failure
+ * has to be loud, name the cause, and offer a retry.
+ */
+function FleetGate({ state, error, onRetry }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm text-center">
+        {state === 'loading' ? (
+          <>
+            <div className="mx-auto mb-3 h-6 w-6 rounded-full border-2 border-slate-200 border-t-brand animate-spin" />
+            <p className="text-sm text-slate-600">Loading fleet…</p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-base font-semibold text-slate-900">Could not load the fleet</h1>
+            <p className="mt-2 text-sm text-slate-600">{error}</p>
+            <p className="mt-2 text-xs text-slate-500">
+              The dashboard is intentionally not shown rather than displaying an empty fleet,
+              which would read as “nothing needs attention”.
+            </p>
+            <button
+              onClick={onRetry}
+              className="mt-4 rounded-lg bg-brand px-4 h-11 text-sm font-semibold text-white hover:bg-brand/90"
+            >
+              Try again
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

@@ -93,8 +93,25 @@ function Legend() {
   );
 }
 
+// How many dots carry a printed plate label. Labelling every vehicle worked
+// at 8 and collapses at fleet scale: vehicles carrying no passengers all sit
+// at safety = 0, so their dots and labels pile up along the x-axis. The
+// vehicles worth naming on sight are the high scorers; everything else is
+// identified by hovering, which the tooltip already handles.
+const MAX_LABELLED_DOTS = 6;
+
 function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
   const hovered = ranked.find((r) => r.vehicle.id === hoveredId);
+
+  // By score, not by array order — `ranked` is re-sorted by days-to-expiry in
+  // expiry mode, and the labels should not change meaning when the toggle
+  // flips.
+  const labelledIds = new Set(
+    [...ranked]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_LABELLED_DOTS)
+      .map((r) => r.vehicle.id)
+  );
 
   return (
     <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2">
@@ -190,16 +207,18 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
                 strokeWidth={isHovered ? 2 : 1.25}
                 style={{ transition: 'r 150ms ease' }}
               />
-              <text
-                x={cx}
-                y={cy - radius - 4}
-                textAnchor="middle"
-                fontSize="9"
-                fontWeight="700"
-                className="fill-slate-600"
-              >
-                {shortPlate}
-              </text>
+              {(labelledIds.has(r.vehicle.id) || isHovered) && (
+                <text
+                  x={cx}
+                  y={cy - radius - 4}
+                  textAnchor="middle"
+                  fontSize="9"
+                  fontWeight="700"
+                  className="fill-slate-600"
+                >
+                  {shortPlate}
+                </text>
+              )}
             </g>
           );
         })}

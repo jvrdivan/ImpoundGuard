@@ -1,124 +1,184 @@
-Storage and data brief
-Owner's job: explain where the data lives, why there is no database, and why that makes
-the privacy claim true rather than promised.
-This is the brief most likely to draw a sceptical question. The answer is strong, but only
-if you say it confidently.
+# Storage and data brief
+
+**Owner's job:** explain where the data lives, what is stored and what
+deliberately isn't, and answer the POPIA question honestly.
+
+> **This brief was rewritten when persistence was added.** An earlier version
+> said there was no database and nothing was ever written to disk. That was
+> true of the browser-state build; it is not true now. If you have the old
+> version in your head, drop it — claiming we store nothing while running on
+> Postgres is the one mistake that would cost you a judge's trust outright.
+
 ---
-1. What it does
-There is no database. No Postgres, no Supabase, no ORM, no `localStorage`, no
-`sessionStorage`, no cookies, no IndexedDB. This was verified by reading every file in
-`src/` and `api/`, not assumed.
-All data lives in one React state variable — the `fleet` array in `src/App.jsx:32` — for as
-long as the browser tab is open. Refresh the page and it is gone.
+
+## 1. What it does
+
+The fleet lives in **Postgres**. Two tables, `vehicles` and `documents`, seeded
+with 32 real-shaped South African vehicles. Confirming a scan writes a row and
+it survives a reload.
+
+What is **not** stored: the certificate photograph. It is downscaled in the
+browser, sent once to the vision model for extraction, and discarded. Nothing
+in the codebase writes an image anywhere — `documents.image_url` exists as a
+column for a future pilot but is never populated.
+
 ---
-2. How it works
-Where state lives
-```js
-const [fleet, setFleet] = useState(() => cloneFleet(INITIAL_FLEET));  // App.jsx:32
+
+## 2. How it works
+
+### The schema — `db/schema.sql`
+
+```sql
+vehicles (
+  vehicle_id, plate_number UNIQUE, vehicle_name, vehicle_type, vin UNIQUE,
+  driver_name, daily_revenue, passenger_load, created_at
+)
+
+documents (
+  document_id, vehicle_id FK -> vehicles ON DELETE CASCADE,
+  document_type, holder_name, issue_date, expiry_date,
+  document_number UNIQUE, verified, image_url, created_at, updated_at
+)
 ```
-Seeded once from `INITIAL_FLEET`, deep-cloned so the seed module itself is never mutated.
-Only two things ever change it:
-`applyScanResult` (`App.jsx:51-71`) — a confirmed scan
-`handleClearSession` (`App.jsx:75-83`) — the reset button
-The seed data
-`src/data/fleet.js` (227 lines) holds 8 vehicles. Each one:
-```js
-{
-  id: 'alex-taxi-014',
-  plate: 'CA 671-045',
-  type: 'Minibus Taxi',
-  label: 'Alex Taxi 14',
-  driverName: 'B. Khumalo',
-  dailyIncome: 1400,        // rand per day
-  passengerLoad: 14,        // people carried daily
-  documents: [
-    { type: 'roadworthy', docNumber: 'RWC-30044', holderName: 'B. Khumalo',
-      issueDate: '...', expiryDate: '...', verified: false }
-  ]
-}
-```
-`dailyIncome` and `passengerLoad` are the two inputs the risk engine weighs against each
-other. Everything else is display.
-Dates are relative, not fixed
-`TODAY` (`fleet.js:31-35`) is computed at module load — `new Date()` with the hour pinned to
-09:00 to dodge midnight edge cases. Every date in the file is an offset from it via
-`daysFromRef()` (`:37-41`).
-This was a real bug fix. An earlier version hardcoded `2026-08-21`, and the "Critical"
-count drifted between test runs 48 hours apart — 0 on one run, 2 on another, same code.
-Worse, after the event every date would eventually read EXPIRED for anyone opening the repo.
-Now every page load gets the identical relative story, whenever it runs. If a judge opens
-this in six months, it still demos correctly.
-`issuedFor()` (`:46-48`) backdates issue dates 365 days from their expiry, so certificates
-read as plausibly issued, not just plausibly expiring.
-How the data is tuned
-The numbers are staged for legibility, and you should say so — it's honest and it's what
-makes the moment land:
-`metro-van-001` — R3,200/day, 0 passengers, expires in 5 days. Starts at #1.
-`alex-taxi-014` — R1,400/day, 14 passengers, cert stale and `verified: false`.
-Starts near the bottom.
-The demo scan (`DEMO_SCAN_RESULT`, `:211-219`) gives the taxi a real certificate expiring in
-11 days — which is later than the van's 5 days. So:
-In risk mode, the taxi jumps to #1, because 14 passengers outweigh the van's revenue.
-In expiry mode (the naive toggle), the van stays first, because 5 < 11.
-That gap, after the same scan, is the proof this isn't a reminder app. It's engineered into
-the seed data on purpose (`fleet.js:14-19`).
-How a scan merges in
-`applyScanResult` (`App.jsx:51-71`):
-Deep-clone the fleet.
-`findVehicleByPlate` (`fleet.js:223-227`) — uppercase, strip spaces and hyphens, exact
-match. No fuzzy matching.
-No match → set `scanError`, return the previous state unchanged.
-Match → `documents.push({...})` with `verified: true`.
-Scans are additive. Old documents are never overwritten or deleted. That's why
-`worstDocument()` (`risk.js:36-42`) reduces across the array to find whichever is closest to
-lapsing, and why the Certificates register lists every document rather than just the latest.
+
+Three indexes, matching the three things the app actually does:
+`plate_number` (lookup on scan), `vehicle_id` (documents on fleet load),
+`expiry_date` (the expiry-order ranking).
+
+**`daily_revenue` and `passenger_load` are the two inputs to the risk engine.**
+In the original draft they defaulted to `0` and were never seeded — which
+zeroes `stake` in `risk.js`, so every vehicle scores `0` and the ranking
+collapses. They are now populated. If someone ever adds a vehicle and leaves
+them blank, that vehicle silently sinks to the bottom of the queue forever.
+
+### Reading — `api/_db.js`
+
+`loadFleet()` does one query with a `json_agg` of each vehicle's documents, and
+maps database columns to the field names the UI already used
+(`daily_revenue` → `dailyIncome`, `passenger_load` → `passengerLoad`, and so
+on). **That mapping is why adding a database didn't ripple through the app** —
+`risk.js`, `stats.js` and every component still see exactly the object shape
+they saw when the fleet was a hard-coded array.
+
+Two type parsers are registered, both fixing real bugs:
+
+- **DATE (OID 1082)** is returned as the raw `YYYY-MM-DD` string. Left alone,
+  node-postgres builds a JS `Date` in the server's timezone, which can shift a
+  certificate's expiry across a day boundary. An expiry date is a calendar day,
+  not an instant.
+- **NUMERIC (OID 1700)** is converted to a number. It arrives as a *string* by
+  default to preserve precision — and `"3800" / 5300` in the risk formula would
+  be silently wrong.
+
+### Writing — `api/fleet.js`
+
+`POST /api/fleet` matches the plate (uppercased, spaces and hyphens stripped),
+inserts the document, and **returns the updated fleet in the same response**.
+That's deliberate: one round trip, one state update, so the re-rank still lands
+in a single render rather than write-then-refetch.
+
+The insert is `ON CONFLICT (document_number) DO UPDATE`. Without it, the second
+rehearsal of the same demo scan would fail on the UNIQUE constraint. Scanning a
+genuinely *new* certificate still adds a row — which is why `worstDocument()`
+reduces across all of a vehicle's documents to find the one nearest lapsing.
+
+### Resetting — `api/reset.js`
+
+`db/schema.sql` snapshots the seeded documents into `documents_seed`. Reset
+truncates `documents`, restores from the snapshot inside a transaction, and
+bumps the `SERIAL` sequence past the restored ids (otherwise the next scan
+collides on the primary key).
+
+**This is destructive and shared.** There is no session — pressing it affects
+everyone on that deployment.
+
+### Connection pooling
+
+`max: 1`. Serverless containers handle one request at a time, so a larger pool
+just multiplies idle connections across containers and exhausts the server's
+limit — the classic way serverless kills a Postgres instance.
+
+There is a live example of what that constraint costs: `reset.js` originally
+held the pool's only connection for its transaction and then called
+`loadFleet()`, which needs a second one. It deadlocked against itself until the
+connection timeout fired. The fix is releasing the client before reading back.
+
 ---
-3. Why it was built this way
-The original proposal had Supabase with row-level security, database views and triggers. All
-of it was cut, for three reasons:
-The security was ceremony. The backend would have used a service-role key, which bypasses
-RLS entirely. The policies would have looked rigorous and protected nothing.
-Views and triggers are unfixable under time pressure. A trigger silently producing wrong
-numbers at 2am, the night before a pitch, is not a debuggable problem in the time available.
-It makes the privacy claim true. This is the real reason. With a database, "we don't keep
-your data" is a promise you're asking someone to trust. With no database, it's a description
-of the architecture. There is no persistence code to audit because there is no persistence
-code.
+
+## 3. Why it was built this way
+
+**Why a database at all?** Because the product's promise is warning an operator
+*before* a document lapses. That means sending an alert on a Tuesday morning
+when nobody has the app open — which requires the server to know the fleet
+while every browser is closed. That is impossible without persistence. The
+recurring per-vehicle price implies an account, and you cannot bill a browser
+tab.
+
+**Why not store the photograph?** It is the highest-risk item and the least
+useful. The extracted fields are what the risk engine needs; the image adds
+storage cost, a breach surface, and a much harder POPIA conversation, for no
+functional gain. `image_url` exists for a pilot that decides otherwise.
+
+**Why is the risk engine still pure?** `risk.js` takes the fleet array and
+returns a ranking. It has no idea the data came from Postgres. That keeps the
+formula explainable and instant, and means the slider still re-ranks with zero
+network traffic.
+
 ---
-4. The POPIA position
-South Africa's Protection of Personal Information Act governs processing of personal
-information — and driver names on certificates qualify.
-What we can state as fact:
-No server-side persistence. `api/scan.js` forwards an image and returns fields. It
-writes no disk, calls no database, and its only log line (`:82`) logs the error object,
-not extracted fields.
-No client-side persistence. No storage API is called anywhere in the codebase.
-One outbound request, total. The only network call the app makes is the `/api/scan`
-POST during a live scan. Fleet state is never transmitted anywhere.
-Session-scoped by construction. Refresh or "Clear session" and it's gone.
-This is what `PrivacyBanner.jsx:28-34` tells the user on screen, and it ends by naming the
-limit honestly: a real pilot deployment would need an explicit retention policy and access
-controls before storing any of this beyond a demo.
+
+## 4. The POPIA position — say it exactly like this
+
+What is true, and defensible:
+
+1. **Fields are stored; images are not.** Plate, holder name, document number
+   and dates go to Postgres. The photograph is discarded after extraction.
+2. **Minimal by design.** Only what the risk engine needs to rank and to warn
+   ahead of an expiry.
+3. **The gaps are named, not hidden.** No accounts, no access control, no
+   retention limit. A pilot needs all three plus consent for holder names at
+   signup.
+4. **The user is told.** `PrivacyBanner.jsx` states this on screen, including
+   that a reset affects everyone on the deployment.
+
+**Do not say "nothing is persisted."** It was true of an earlier build and it
+is false now.
+
 ---
-5. Likely judge questions
-"So nothing is saved at all? What use is that?"
-For a demo, it's the point — you can photograph a real certificate and nothing about it
-survives the tab. For a pilot, you'd add persistence with a stated retention policy. That's
-a deliberate next step, not an oversight, and it's the honest place for that conversation to
-start.
-"How would you add persistence?"
-`localStorage` is about five lines — the state is already a single serialisable array. Real
-multi-user persistence means a database, and at that point the interesting work is the
-retention policy and access controls, not the schema.
-"Is this real data?"
-It's synthetic data, tuned so the demo is legible. The formula is real, the calculation is
-real, and the numbers are plausible for a small Cape Town operator — but these are not eight
-real vehicles, and we're not claiming they are.
-"Isn't the demo rigged if you tuned the data?"
-The data is staged; the mechanism isn't. The taxi is at 14 passengers and the van at 0
-because that's what makes the trade-off visible in three seconds. Change any number in
-`fleet.js` and the ranking recomputes honestly — the formula doesn't know which vehicle it's
-supposed to favour. Drag the slider to pure revenue and the van wins, live.
-"What about POPIA?"
-Use the four facts in §4. Lead with: nothing is persisted anywhere, and that's enforced by
-the architecture rather than by a policy document.
+
+## 5. Likely judge questions
+
+**"What do you store about a driver?"**
+Their name as printed on the certificate, plus the plate, document number and
+dates. Not the photograph — that's downscaled in the browser, sent once for
+extraction, and discarded. It's the minimum the risk engine needs to rank the
+fleet and warn ahead of an expiry.
+
+**"Is that POPIA compliant?"**
+The data minimisation part, yes — we hold fields rather than images and only
+what the ranking needs. What this build does *not* have is accounts, access
+control or a retention limit, and a real deployment needs all three plus
+consent for holder names at signup. I'd rather tell you that than claim we've
+solved it in a weekend.
+
+**"So a judge photographing a certificate ends up in your database?"**
+The fields do, yes, and it stays there until someone resets the demo data.
+That's why the banner says to use demo certificates. If you'd like yours
+removed I can press reset right now and it's gone.
+
+**"Why not just keep it all in the browser like a demo?"**
+It did, originally. But then the product can't do the one thing it promises —
+tell you about a risk before it bites, when you're not looking at it. That
+needs the server to know the fleet while your browser is closed.
+
+**"Is this real data?"**
+The vehicles, VINs and certificate numbers are synthetic but real-shaped.
+`daily_revenue` and `passenger_load` are our estimates, chosen to be plausible
+for a South African operator — trucks earn most and carry nobody, buses carry
+up to 65. Those two numbers drive the whole ranking, so it's fair to ask, and
+they're visible in `db/schema.sql`.
+
+**"Isn't the demo rigged if you picked those numbers?"**
+The numbers are estimates; the mechanism isn't. Change any of them and the
+ranking recomputes honestly — the formula doesn't know which vehicle it's
+supposed to favour. Drag the slider to pure revenue and the freight trucks take
+over, live.

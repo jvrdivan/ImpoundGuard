@@ -4,6 +4,13 @@
 // "expand" toggle reveals the real detail rather than linking anywhere —
 // there's no separate privacy page in a hackathon build, and a dead link
 // reads worse than no link.
+//
+// This text previously said captured documents were "never written to a
+// server or disk". That was true when the fleet lived in React state; it
+// stopped being true the moment certificates were persisted to Postgres.
+// What follows describes what the system actually does, including the parts
+// a pilot would still need to build. Overstating the privacy position in a
+// compliance tool is the one failure mode that cannot be argued away.
 
 import { useState } from 'react';
 
@@ -15,8 +22,8 @@ export default function PrivacyBanner() {
       <div className="flex items-start gap-3">
         <LockIcon className="w-4 h-4 text-slate-500 mt-1.5 shrink-0" />
         <div className="flex-1 text-sm text-slate-600 py-1.5">
-          Demo data only. Holder names read off certificates are personal data. Captured
-          documents are held in this browser session only, never written to a server or disk.
+          Demo data. Holder names read off certificates are personal data, and confirmed
+          certificates are stored in this deployment's database until reset.
         </div>
         <button
           onClick={() => setExpanded((v) => !v)}
@@ -27,10 +34,14 @@ export default function PrivacyBanner() {
       </div>
       {expanded && (
         <div className="mt-2 pl-7 text-xs text-slate-500 leading-relaxed">
-          Everything on this screen — vehicle data, scanned certificates, holder names — lives in
-          this browser tab's memory for the current session and nowhere else. Refreshing the page
-          or pressing "Clear session" removes it completely. A real pilot deployment would need an
-          explicit retention policy and access controls before storing any of this beyond a demo.
+          Confirming a scan writes the plate, holder name, document number and dates to a
+          Postgres database shared by everyone using this deployment, and they persist across
+          reloads until someone presses “Reset demo data”. The photograph itself is not
+          stored — it is downscaled in your browser, sent once for extraction, and discarded.
+          <br /><br />
+          Use demo certificates rather than a real person's. This build has no accounts, no
+          access control and no retention limit, because it is a demo: a pilot would need all
+          three, plus consent for holder names, before it touched real fleet paperwork.
         </div>
       )}
     </div>

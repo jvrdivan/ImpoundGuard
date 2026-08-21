@@ -12,7 +12,8 @@
 
 import { useState, useRef } from 'react';
 import { downscaleImage } from '../lib/downscale';
-import { DEMO_SCAN_RESULT } from '../data/fleet';
+import { extractCertificate } from '../lib/api';
+import { DEMO_SCAN_RESULT } from '../data/demoScan';
 
 const BLANK_FIELDS = {
   docType: 'roadworthy',
@@ -47,14 +48,7 @@ export default function ScanPanel({ onConfirm, onClose }) {
         await new Promise((r) => setTimeout(r, 900)); // feels like a real call
         result = DEMO_SCAN_RESULT;
       } else {
-        const res = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64, mimeType }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Extraction failed.');
-        result = data;
+        result = await extractCertificate({ imageBase64: base64, mimeType });
       }
 
       setFields({

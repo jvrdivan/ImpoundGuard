@@ -660,25 +660,25 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     </section>
 
     <!-- ============================ 9 &middot; PRIVACY ====================== -->
-    <section class="slide" data-notes="Answer the POPIA question before it is asked. Holder names are personal data. There is no database &mdash; that is an architectural fact, not a policy promise. Then say what a real pilot would need.">
+    <section class="slide" data-notes="Answer the POPIA question before it is asked. Holder names are personal data. Say plainly what we store and what we do not: certificate FIELDS are persisted, the PHOTOGRAPH is not. Then name the three things a pilot still needs &mdash; retention, access control, consent. Do not claim we store nothing; we run on Postgres and a judge can read the schema.">
       <div class="roadline"></div>
-      <div class="eyebrow">Privacy by construction</div>
-      <h2 class="sm">Nothing is stored, because there is nowhere to store it.</h2>
-      <p class="lede">Every certificate a judge photographs carries a holder&rsquo;s name &mdash; personal data under POPIA. The fleet, the scans and the names live in the browser tab for the length of the session and nowhere else.</p>
+      <div class="eyebrow">Privacy by design</div>
+      <h2 class="sm">We keep the fields. We never keep the photograph.</h2>
+      <p class="lede">Every certificate carries a holder&rsquo;s name &mdash; personal data under POPIA. Confirmed certificates are written to Postgres, because reminding an operator before a document lapses means knowing their fleet when nobody has the app open. The image itself is downscaled in the browser, sent once for extraction, and discarded.</p>
 
       <div class="inputs" style="grid-template-columns:repeat(2,1fr)">
         <div class="input-card s">
-          <div class="lbl">True by architecture</div>
-          <p>There is no database, so there is no store to breach, subpoena or forget to purge. &ldquo;Clear session&rdquo; is not a setting &mdash; it is the only state.</p>
+          <div class="lbl">Stored, and why</div>
+          <p>Plate, holder name, document number and dates &mdash; the minimum needed to rank risk and warn ahead of an expiry. Two tables, both readable in the repo.</p>
         </div>
         <div class="input-card r">
           <div class="lbl">What a pilot would add</div>
-          <p>Real deployment needs an explicit retention period, named access, and consent for holder names before a single document is persisted.</p>
+          <p>This build has no accounts, no access control and no retention limit. A real deployment needs all three, plus consent for holder names at signup.</p>
         </div>
       </div>
 
       <div class="verdict" style="margin-top:auto">
-        A demo that cannot leak is a stronger claim than a demo that promises not to.
+        Storing the fields and discarding the image is the smallest footprint that still does the job.
       </div>
     </section>
 
