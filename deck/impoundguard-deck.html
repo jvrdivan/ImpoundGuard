@@ -401,11 +401,11 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
 
           <h1 style="margin-top:52px;color:var(--paper)">Compliance that knows what&rsquo;s worth protecting.</h1>
 
-          <p class="lede">Photograph a roadworthy certificate. The fleet re-ranks itself in seconds &mdash; by lives at risk as well as rand at risk.</p>
+          <p class="lede">Photograph a roadworthy certificate. The fleet re-ranks itself in seconds &mdash; by rand at risk and how hard the vehicle is to replace.</p>
 
           <div class="cover-foot">
             <div>FLEET, TRANSPORT &amp; LOGISTICS</div>
-            <div>8 VEHICLES &middot; <b>ZERO HARDWARE</b></div>
+            <div>32 VEHICLES &middot; <b>ZERO HARDWARE</b></div>
             <div>BUILT IN <b>ONE WEEKEND</b></div>
           </div>
         </div>
@@ -413,20 +413,20 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     </section>
 
     <!-- ============================ 2 &middot; THE COST ===================== -->
-    <section class="slide" data-notes="Land the stakes physically. It is not a fine &mdash; the vehicle is taken. Days, sometimes weeks. The driver goes unpaid and the route sits uncovered. Say 'impounded' slowly.">
+    <section class="slide" data-notes="Land the stakes physically. It is not a fine &mdash; the vehicle is taken. Days, sometimes weeks. The route sits uncovered unless something else can run it. Say 'impounded' slowly.">
       <div class="roadline"></div>
       <div class="eyebrow">The cost</div>
-      <h2>A missed certificate doesn&rsquo;t cost a fine. It costs the vehicle.</h2>
-      <p class="lede">Pulled over at a roadblock and impounded &mdash; for days, sometimes weeks. The driver goes unpaid. The route sits uncovered. The paperwork that would have caught it in time is in a shoebox in the cab.</p>
+      <h2>A missed certificate doesn&rsquo;t cost a fine. It costs the route.</h2>
+      <p class="lede">Pulled over at a roadblock and impounded &mdash; for days, sometimes weeks. The route sits uncovered unless another vehicle can run it. The paperwork that would have caught it in time is in a shoebox in the cab.</p>
 
       <div class="stats">
         <div class="stat">
-          <div class="v" style="color:var(--danger)">R3 200</div>
+          <div class="v" style="color:var(--danger)">R5 300</div>
           <div class="k">Top earner, per day off the road</div>
         </div>
         <div class="stat">
-          <div class="v" style="color:var(--warn)">14</div>
-          <div class="k">Passengers stranded, per day</div>
+          <div class="v" style="color:var(--warn)">0</div>
+          <div class="k">Spare buses in reserve, fleet-wide</div>
         </div>
         <div class="stat">
           <div class="v">Days</div>
@@ -436,14 +436,14 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     </section>
 
     <!-- ============================ 3 &middot; THE GAP ====================== -->
-    <section class="slide" data-notes="This is the human failure the product fixes. Nobody has one view. So the decision defaults to revenue &mdash; and that quietly means the vehicle full of people loses. Pause before the last sentence.">
+    <section class="slide" data-notes="This is the human failure the product fixes. Nobody has one view. So the decision defaults to whichever lapses soonest &mdash; and that quietly ignores whether anything can stand in while it's off the road. Pause before the last sentence.">
       <div class="roadline"></div>
       <div class="eyebrow">Why it keeps happening</div>
-      <h2>Nobody has one view of what lapses next.</h2>
-      <p class="lede">Certificates live in a shoebox, or scattered across WhatsApp photos nobody ever filed. When money is tight and only one vehicle can be renewed this week, the owner renews whichever earns the most.</p>
+      <h2>Nobody has one view of what&rsquo;s actually replaceable.</h2>
+      <p class="lede">Certificates live in a shoebox, or scattered across WhatsApp photos nobody ever filed. Testing slots are limited, so only a few vehicles can go in this week &mdash; and the choice defaults to whichever lapses soonest.</p>
 
       <div class="verdict">
-        That quietly means the vehicle carrying <em>fourteen passengers a day</em> can lose out to the van carrying <em>nobody</em> &mdash; because nothing is weighing safety against revenue. Only memory against panic.
+        That quietly means a 65-seat bus with <em>zero spares behind it</em> can wait its turn behind a freight truck with two spares standing by &mdash; because nothing is weighing coverage against the calendar. Only memory against panic.
       </div>
     </section>
 
@@ -482,14 +482,14 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     </section>
 
     <!-- ============================ 5 &middot; THE ENGINE =================== -->
-    <section class="slide" data-notes="This is the slide that survives scrutiny. Read the formula out loud &mdash; you can, that is the point. Stress: no language model in the ranking. It is arithmetic, it runs offline, it cannot fail live.">
+    <section class="slide" data-notes="This is the slide that survives scrutiny. Read the formula out loud &mdash; you can, that is the point. Stress: no language model in the ranking, and scarcity is not an assigned weight, it is counted &mdash; how many compliant, capable spares actually exist right now. Arithmetic, runs offline, cannot fail live.">
       <div class="roadline"></div>
       <div class="eyebrow">The risk engine</div>
       <h2 class="sm">A ranking you can read out loud.</h2>
 
       <div class="formula">
         score = 100 <span class="dim">&times;</span> <span class="hl">urgency</span>
-        <span class="dim">&times;</span> ( w<span class="dim">&middot;</span><span class="hl">safety</span>
+        <span class="dim">&times;</span> ( w<span class="dim">&middot;</span><span class="hl">scarcity</span>
         <span class="dim">+</span> (1&minus;w)<span class="dim">&middot;</span><span class="hl">revenue</span> )
       </div>
 
@@ -503,18 +503,18 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
           <p>Daily income, relative to the fleet&rsquo;s highest earner.</p>
         </div>
         <div class="input-card s">
-          <div class="lbl">Safety</div>
-          <p>Passengers carried daily, relative to the fleet&rsquo;s fullest vehicle.</p>
+          <div class="lbl">Scarcity</div>
+          <p>How few compliant, capable spares exist to cover this vehicle&rsquo;s route right now &mdash; zero spares of a matching type scores 1, three or more scores 0.</p>
         </div>
       </div>
 
       <div class="verdict" style="margin-top:auto">
-        Multiplying by urgency is deliberate: a vehicle with months of cover scores near zero no matter what it earns. And <em>w</em> is a slider the owner controls &mdash; the ethics are on screen, not buried in the code.
+        Multiplying by urgency is deliberate: a vehicle with months of cover scores near zero no matter what it earns. And <em>w</em> is a slider the owner controls &mdash; scarcity is counted from the fleet, not assigned by us.
       </div>
     </section>
 
     <!-- ============================ 6 &middot; THE MOMENT =================== -->
-    <section class="slide" data-notes="THE DEMO. Say nothing while the row moves &mdash; let the room watch it. The taxi was sixth because its certificate was stale and unverified. One photograph and it is first.">
+    <section class="slide" data-notes="THE DEMO. Say nothing while the row moves &mdash; let the room watch it. The bus was 28th of 32 because its record was stale and unverified &mdash; nine months old, nobody had checked it this cycle. One photograph and it is second, behind only a vehicle that has already been pulled off the road.">
       <div class="roadline"></div>
       <div class="eyebrow">The moment</div>
       <h2 class="sm">One scan. The fleet reorders itself.</h2>
@@ -524,48 +524,48 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
           <div class="panel-h"><span>Before the scan</span><span>RANK</span></div>
           <div class="rank hot">
             <div class="pos">1</div>
-            <div class="who"><div class="plate">CA 402-118</div><div class="name">Metro Courier Van</div></div>
-            <div class="meta"><b>0 pax</b>R3 200/day</div>
+            <div class="who"><div class="plate">WY 41 KL GP</div><div class="name">60-Seater Commuter Bus &mdash; already expired</div></div>
+            <div class="meta"><b>0 spares</b>R3 200/day</div>
           </div>
           <div class="rank mid">
             <div class="pos">2</div>
-            <div class="who"><div class="plate">CA 118-902</div><div class="name">CBD Recovery Tow Truck</div></div>
-            <div class="meta"><b>2 pax</b>R2 600/day</div>
+            <div class="who"><div class="plate">CAA 812-394</div><div class="name">Actros Freight Truck</div></div>
+            <div class="meta"><b>2 spares</b>R5 100/day</div>
           </div>
           <div class="rank spot">
-            <div class="pos">6</div>
-            <div class="who"><div class="plate">CA 671-045</div><div class="name">Alex Taxi 14 &mdash; certificate unverified</div></div>
-            <div class="meta"><b>14 pax</b>R1 400/day</div>
+            <div class="pos">28</div>
+            <div class="who"><div class="plate">CA 449-102</div><div class="name">Volvo B8R 65-Seater &mdash; record unverified, 9 months old</div></div>
+            <div class="meta"><b>0 spares</b>R3 800/day</div>
           </div>
         </div>
 
         <div class="panel win">
           <div class="panel-h"><span>After the scan</span><span>RANK</span></div>
-          <div class="rank spot hot">
-            <div class="pos">1</div>
-            <div class="who"><div class="plate">CA 671-045</div><div class="name">Alex Taxi 14 &mdash; 12 days to noncompliance</div></div>
-            <div class="meta"><b>14 pax</b>R1 400/day</div>
-          </div>
           <div class="rank hot">
+            <div class="pos">1</div>
+            <div class="who"><div class="plate">WY 41 KL GP</div><div class="name">60-Seater Commuter Bus &mdash; already expired</div></div>
+            <div class="meta"><b>0 spares</b>R3 200/day</div>
+          </div>
+          <div class="rank spot hot">
             <div class="pos">2</div>
-            <div class="who"><div class="plate">CA 402-118</div><div class="name">Metro Courier Van</div></div>
-            <div class="meta"><b>0 pax</b>R3 200/day</div>
+            <div class="who"><div class="plate">CA 449-102</div><div class="name">Volvo B8R 65-Seater &mdash; 9 days to noncompliance</div></div>
+            <div class="meta"><b>0 spares</b>R3 800/day</div>
           </div>
           <div class="rank mid">
             <div class="pos">3</div>
-            <div class="who"><div class="plate">CA 118-902</div><div class="name">CBD Recovery Tow Truck</div></div>
-            <div class="meta"><b>2 pax</b>R2 600/day</div>
+            <div class="who"><div class="plate">CAA 812-394</div><div class="name">Actros Freight Truck</div></div>
+            <div class="meta"><b>2 spares</b>R5 100/day</div>
           </div>
         </div>
       </div>
 
       <div class="verdict" style="margin-top:auto">
-        Sixth to first &mdash; and it earns <em>less than half</em> what the van at the top earns.
+        28th to 2nd &mdash; second in the whole 32-vehicle fleet, behind only the one vehicle already impounded. And it&rsquo;s the single route with <em>nothing</em> behind it if it goes down.
       </div>
     </section>
 
     <!-- ============================ 7 &middot; THE CONTRAST ================= -->
-    <section class="slide dark" data-notes="The killer slide. Flip the toggle live on the dashboard while you say this. Same scan, same data, one setting changed. A reminder app sends this owner to renew the empty van first. Let that sit.">
+    <section class="slide dark" data-notes="The killer slide. Flip the toggle live on the dashboard while you say this. Same scan, same data, one setting changed. A reminder app sends this owner to a freight truck that already has two spares waiting, while the 65-seat bus with zero coverage sits at seventh. Let that sit.">
       <div class="roadline"></div>
       <div class="eyebrow">The difference</div>
       <h2 class="sm" style="color:var(--paper)">Same scan. Two orders. One of them is wrong.</h2>
@@ -575,48 +575,48 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
           <div class="panel-h" style="color:#8592A8"><span>Sorted by expiry &mdash; what a reminder app shows</span></div>
           <div class="rank hot" style="border-bottom-color:rgba(255,255,255,.10)">
             <div class="pos">1</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 402-118</div><div class="name" style="color:#8592A8">Metro Courier Van &middot; 6 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>0 pax</b>carries nobody</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">WY 41 KL GP</div><div class="name" style="color:#8592A8">Commuter Bus &middot; already expired</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>0 spares</b></div>
           </div>
           <div class="rank mid" style="border-bottom-color:rgba(255,255,255,.10)">
             <div class="pos">2</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 118-902</div><div class="name" style="color:#8592A8">Tow Truck &middot; 9 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>2 pax</b></div>
+            <div class="who"><div class="plate" style="color:var(--paper)">FT 39 LW GP</div><div class="name" style="color:#8592A8">Freight Truck &middot; 5 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>2 spares</b></div>
           </div>
           <div class="rank">
-            <div class="pos">3</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 671-045</div><div class="name" style="color:#8592A8">Alex Taxi 14 &middot; 12 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>14 pax</b></div>
+            <div class="pos">7</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 449-102</div><div class="name" style="color:#8592A8">Volvo B8R 65-Seater &middot; 9 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>0 spares</b></div>
           </div>
         </div>
 
         <div class="panel win" style="background:rgba(201,162,75,.10);box-shadow:0 0 0 2px var(--gold-500)">
           <div class="panel-h"><span>Sorted by risk &mdash; ImpoundGuard</span></div>
-          <div class="rank spot hot" style="background:rgba(201,162,75,.18);border-bottom-color:rgba(255,255,255,.10)">
-            <div class="pos">1</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 671-045</div><div class="name" style="color:#C9C2AE">Alex Taxi 14 &middot; 12 days</div></div>
-            <div class="meta" style="color:#E6DFCB"><b>14 pax</b>every day</div>
-          </div>
           <div class="rank hot" style="border-bottom-color:rgba(255,255,255,.10)">
+            <div class="pos">1</div>
+            <div class="who"><div class="plate" style="color:var(--paper)">WY 41 KL GP</div><div class="name" style="color:#8592A8">Commuter Bus &middot; already expired</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>0 spares</b></div>
+          </div>
+          <div class="rank spot hot" style="background:rgba(201,162,75,.18);border-bottom-color:rgba(255,255,255,.10)">
             <div class="pos">2</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 402-118</div><div class="name" style="color:#8592A8">Metro Courier Van &middot; 6 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>0 pax</b></div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CA 449-102</div><div class="name" style="color:#C9C2AE">Volvo B8R 65-Seater &middot; 9 days</div></div>
+            <div class="meta" style="color:#E6DFCB"><b>0 spares</b>nothing behind it</div>
           </div>
           <div class="rank mid">
             <div class="pos">3</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 118-902</div><div class="name" style="color:#8592A8">Tow Truck &middot; 9 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>2 pax</b></div>
+            <div class="who"><div class="plate" style="color:var(--paper)">CAA 812-394</div><div class="name" style="color:#8592A8">Freight Truck &middot; 6 days</div></div>
+            <div class="meta" style="color:#B6C0D0"><b>2 spares</b></div>
           </div>
         </div>
       </div>
 
       <div class="verdict" style="margin-top:auto">
-        A reminder app tells this owner to renew the <em>empty van</em> first, because it lapses six days sooner. That is the gap this build closes.
+        A reminder app tells this owner to renew the <em>freight truck with two spares waiting</em> first, because it lapses sooner. The 65-seat bus with <em>nothing</em> behind it waits at seventh. That is the gap this build closes.
       </div>
     </section>
 
     <!-- ============================ 8 &middot; THE COST OF WAITING ========== -->
-    <section class="slide" data-notes="The number that lands: at seven days the exposure is R16 000 and ZERO passenger trips &mdash; because the only vehicle lapsing that soon carries nobody. Widen to fourteen days and passengers appear. The report derived that on its own.">
+    <section class="slide" data-notes="The number that lands: even at seven days, four vehicles and R83 500 are exposed, and one of those four is the bus with literally zero spare capacity behind it. The report worked that out on its own from real seed data, not us.">
       <div class="roadline"></div>
       <div class="eyebrow">What waiting costs</div>
       <h2 class="sm">Exposure, projected forward.</h2>
@@ -628,34 +628,34 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
               <th>Horizon</th>
               <th>Vehicles lapsing</th>
               <th>Revenue at risk</th>
-              <th>Passenger trips hit</th>
+              <th>Uncovered route-days</th>
             </tr>
           </thead>
           <tbody>
             <tr class="key">
               <td>Within 7 days</td>
-              <td class="num">1</td>
-              <td class="num">R16 000</td>
-              <td class="num zero">0</td>
+              <td class="num">4</td>
+              <td class="num">R83 500</td>
+              <td class="num">5</td>
             </tr>
             <tr>
               <td>Within 14 days</td>
-              <td class="num">3</td>
-              <td class="num">R39 000</td>
-              <td class="num">30</td>
+              <td class="num">7</td>
+              <td class="num">R137 500</td>
+              <td class="num">5</td>
             </tr>
             <tr>
               <td>Within 30 days</td>
-              <td class="num">8</td>
-              <td class="num">R79 500</td>
-              <td class="num">160</td>
+              <td class="num">10</td>
+              <td class="num">R187 000</td>
+              <td class="num">5</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="verdict" style="margin-top:auto">
-        At seven days the fleet has <em>R16 000</em> exposed and <em>zero</em> passenger trips at stake &mdash; because the only vehicle lapsing that soon carries nobody. That single row is the argument for weighting safety, and the report worked it out on its own.
+        Even at seven days, <em>R83 500</em> is already exposed &mdash; and one of those four vehicles is a bus with <em>zero</em> spare capacity behind it if it lapses. That single row is the argument for weighting coverage, not just the calendar, and the report worked it out on its own.
       </div>
     </section>
 
@@ -691,6 +691,7 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
       <div class="close-grid">
         <div class="list">
           <div class="li"><span class="tick">&#9679;</span><span><b>The full loop works</b> &mdash; scan, extract, correct, re-rank, live.</span></div>
+          <div class="li"><span class="tick">&#9679;</span><span><b>Maintenance scheduling ships too</b> &mdash; sequences every inspection against real slot capacity and shows which routes have a spare behind them, and which don&rsquo;t.</span></div>
           <div class="li"><span class="tick">&#9679;</span><span><b>Zero hardware.</b> Telematics incumbents need a box per vehicle and an installer. This needs a phone that already exists.</span></div>
           <div class="li"><span class="tick">&#9679;</span><span><b>R49 per vehicle, per month</b> &mdash; roughly one day of one vehicle&rsquo;s earnings, per year.</span></div>
           <div class="li"><span class="tick">&#9679;</span><span><b>Next:</b> PrDP and COIDA, so the pipeline proves it generalises past one template.</span></div>

@@ -12,12 +12,16 @@ import { classifyStatus, STATUS } from './risk';
 export function computeFleetStats(ranked) {
   const atRisk = ranked.filter((r) => classifyStatus(r) === STATUS.CRITICAL);
   const unassessed = ranked.filter((r) => classifyStatus(r) === STATUS.NO_CERTIFICATE);
+  // scarcity === 1 means zero compliant, capable spares exist right now for
+  // this vehicle's route — not "carries a lot of passengers," which was the
+  // figure this replaced. See risk.js's scarcityFor().
+  const uncoverable = atRisk.filter((r) => r.vehicle.route && r.scarcity === 1);
 
   return {
     totalVehicles: ranked.length,
     atRiskCount: atRisk.length,
     dailyRevenueExposed: atRisk.reduce((sum, r) => sum + r.vehicle.dailyIncome, 0),
-    passengersExposed: atRisk.reduce((sum, r) => sum + r.vehicle.passengerLoad, 0),
+    uncoverableCount: uncoverable.length,
     unassessedCount: unassessed.length,
   };
 }
@@ -75,12 +79,17 @@ export function buildAlerts(ranked) {
         sort: 0,
       });
     } else if (status === STATUS.CRITICAL) {
+      const coverPart = !r.vehicle.route
+        ? 'held in reserve'
+        : r.scarcity === 1
+          ? 'no spare can cover it'
+          : `covers ${r.vehicle.route.name}`;
       alerts.push({
         id: r.vehicle.id + '-critical',
         vehicleId: r.vehicle.id,
         severity: 'critical',
         title: `${r.vehicle.plate} is critical`,
-        detail: `${days} day${days === 1 ? '' : 's'} to noncompliance · ${r.vehicle.passengerLoad} passengers daily`,
+        detail: `${days} day${days === 1 ? '' : 's'} to noncompliance · ${coverPart}`,
         sort: 1,
       });
     } else if (status === STATUS.NO_CERTIFICATE) {

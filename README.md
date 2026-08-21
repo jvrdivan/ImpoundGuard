@@ -1,8 +1,11 @@
 # ImpoundGuard
 
 A fleet compliance tool that turns a photographed roadworthy certificate into
-an instant vehicle match, then re-ranks the fleet live by real risk — safety
-included, not just whichever document expires soonest.
+an instant vehicle match, then re-ranks the fleet live by real risk — coverage
+scarcity included, not just whichever document expires soonest. It also
+builds a maintenance schedule: which vehicle goes in for inspection when,
+given a real limit on how many can be offline at once, and whether a spare
+exists to run its route while it's gone.
 
 The fleet lives in Postgres and confirmed certificates are written back, so a
 scan survives a reload. That is the product working as it actually would: the
@@ -20,7 +23,9 @@ all three, plus consent for holder names. See
 ## Architecture
 
 ```
-db/schema.sql                vehicles + documents, 32 seeded vehicles, seed snapshot
+db/schema.sql                vehicles + documents + routes, 32 seeded vehicles, seed snapshot.
+                             vehicles.route_id is nullable — NULL means the vehicle is a
+                             spare. That's the only source of slack the scheduler has.
 
 api/_db.js                   pooled Postgres access; maps DB columns -> the shape the UI
                              already expected, so risk.js and the components are untouched
@@ -34,8 +39,11 @@ src/lib/api.js               every call the browser makes to our backend
 src/data/demoScan.js         the canned extraction used by demo mode
 
 src/lib/risk.js              pure scoring engine (urgency x stake), reasoning strings,
-                             and classifyStatus() — the single source of truth for
-                             critical / due-soon / compliant / no-certificate
+                             classifyStatus() — the single source of truth for
+                             critical / due-soon / compliant / no-certificate — and
+                             isCompliant(), shared with schedule.js
+src/lib/schedule.js          the maintenance scheduler: earliest-deadline-first placement
+                             against a slots-per-week cap, with route-backfill matching
 src/lib/stats.js             KPI totals, compliance buckets, notification alerts
 src/lib/certificates.js      the paperwork register (pure date status, not risk-weighted)
 src/lib/reports.js           forward-looking exposure model + CSV export
@@ -45,17 +53,18 @@ src/components/
   Sidebar / TopBar           nav (scroll targets), search, NotificationsMenu
   StatCards                  four KPI cards
   ComplianceOutlook          proportional bucket bar
-  RiskExposurePanel          the money-vs-lives slider (this IS risk.js's `weight`)
-  RiskPanel                  revenue-vs-safety quadrant + per-vehicle score breakdown
+  RiskExposurePanel          the money-vs-continuity slider (this IS risk.js's `weight`)
+  RiskPanel                  revenue-vs-scarcity quadrant + per-vehicle score breakdown
   ActionQueue                the core ranked table + the expiry-order toggle
   NextBestAction             two data-driven suggestions
   CertificatesPanel          every document, soonest-expiry first
+  SchedulePanel              week-by-week maintenance plan, covered/uncovered per route
   ReportsPanel               horizon exposure, impound-days assumption, CSV export
   ScanPanel                  capture -> extract -> confirm/correct -> commit
   PrivacyBanner              what is stored and what is not
   Logo                       inline SVG brandmark + wordmark
 
-scripts/verify-db.mjs        end-to-end check of the persistence layer, no Vercel needed
+scripts/verify-db.mjs        end-to-end check of the persistence + schedule layer, no Vercel needed
 scripts/dev-server.mjs       serves dist/ + runs api/ in one process for local testing
 deck/impoundguard-deck.html  10-slide pitch deck, self-contained, opens in any browser
 docs/CONTEXT.md              project background, what's open, tooling gotchas
@@ -124,38 +133,52 @@ nothing about venue wifi or a real photo's file size.
 ## The risk formula
 
 ```
-urgency (U) = 1 if expired, else (30 - daysLeft) / 30, clamped 0..1
-revenue (R) = dailyIncome / fleet's highest dailyIncome
-safety  (S) = passengerLoad / fleet's highest passengerLoad
-stake       = weight * S + (1 - weight) * R     (weight = the slider, default 0.5)
-score       = 100 * U * stake
+urgency  (U) = 1 if expired, else (30 - daysLeft) / 30, clamped 0..1
+revenue  (R) = dailyIncome / fleet's highest dailyIncome
+scarcity (C) = 1 - (compatible, compliant spares / 3), clamped 0..1
+stake        = weight * C + (1 - weight) * R     (weight = the slider, default 0.5)
+score        = 100 * U * stake
 ```
 
 Multiplicative on purpose — a vehicle with 200 days of runway scores near
 zero regardless of stakes; an expired document pins urgency to 1. See
 `src/lib/risk.js` for the full implementation and reasoning-string formatter.
 
-`daily_revenue` and `passenger_load` in `db/schema.sql` are the two inputs to
-`stake`. They are estimates, not measured figures — and if they are left at
-their column defaults of `0`, every vehicle scores `0` and the ranking
-collapses entirely.
+Scarcity replaced an earlier "safety" term (passenger count relative to the
+fleet's fullest vehicle) — a moral weighting that asked an owner to price how
+many lives a route carries, and didn't actually buy safety, just correlated
+with it. Scarcity asks something a fleet manager actually decides day to day:
+if this vehicle goes offline, can anything else physically run its route? A
+"compatible" spare shares the vehicle's type and has enough capacity for the
+route's `min_capacity`; "compliant" means its own certificate isn't lapsed.
+Zero such spares scores 1; three or more scores 0 — see `db/schema.sql`'s
+`routes` table and `vehicles.route_id` (nullable — `NULL` is a spare).
+
+`daily_revenue` and `passenger_load` in `db/schema.sql` are still the two
+underlying numbers, but `passenger_load` is now read as route capacity for
+substitution matching, not as a weighted value. If they're left at their
+column defaults of `0`, every vehicle scores `0` and the ranking collapses
+entirely.
 
 ## The demo beat
 
 `CA 449-102` (the Volvo B8R 65-seater bus) starts near the bottom of the risk
-ranking — around #28 of 32 — because its roadworthy record says November and
-is flagged `verified = false`. Plenty of runway on paper; nobody has checked.
+ranking — **#28 of 32** — because its roadworthy record says November and is
+flagged `verified = false`. Plenty of runway on paper; nobody has checked.
 
 Scanning the demo certificate (`src/data/demoScan.js`) reveals a real
-certificate ~9 days from lapsing. Carrying 65 people, it climbs to **#2**,
-behind only an already-expired commuter bus.
+certificate ~9 days from lapsing. It climbs to **#2**, behind only an
+already-expired commuter bus — because it's a bus, and the fleet holds **zero
+spare buses in reserve**: nothing else can run its route.
 
 The contrast: in **Expiry order** — the "what a reminder app shows you" naive
-mode — that same vehicle sits at **#7**, because five others genuinely expire
-sooner. Same fleet, same scan, different question asked.
+mode — that same vehicle sits at **#7**, behind freight trucks that genuinely
+expire sooner but have two spares standing by. Same fleet, same scan,
+different question asked.
 
 Rehearse: open the app → **Scan a certificate** (demo mode on) → confirm →
-watch the re-sort → flip the toggle → flip it back → drag the slider.
+watch the re-sort → flip the toggle → flip it back → drag the slider → check
+the **Schedule** pane and see that same bus marked UNCOVERED.
 
 ## Continuing on another machine
 

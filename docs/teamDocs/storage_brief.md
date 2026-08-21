@@ -29,9 +29,16 @@ column for a future pilot but is never populated.
 ### The schema — `db/schema.sql`
 
 ```sql
+routes (
+  route_id, route_code UNIQUE, route_name, required_type,
+  min_capacity, daily_value, active
+)
+
 vehicles (
   vehicle_id, plate_number UNIQUE, vehicle_name, vehicle_type, vin UNIQUE,
-  driver_name, daily_revenue, passenger_load, created_at
+  driver_name, daily_revenue, passenger_load,
+  route_id FK -> routes ON DELETE SET NULL,   -- NULL = held as a spare
+  created_at
 )
 
 documents (
@@ -41,15 +48,27 @@ documents (
 )
 ```
 
-Three indexes, matching the three things the app actually does:
-`plate_number` (lookup on scan), `vehicle_id` (documents on fleet load),
-`expiry_date` (the expiry-order ranking).
+`routes` and `vehicles.route_id` were added alongside the maintenance
+scheduler (`src/lib/schedule.js`) — `route_id IS NULL` is the *entire*
+definition of "this vehicle is a spare." Of 32 vehicles, 26 hold a route and 6
+are spares, split deliberately unevenly by type: trucks and vans have 2–3
+spares each (comfortably covered), midibus taxis have 1 (thin), and buses
+have **zero** — no bus route in this fleet has anything that can cover it.
 
-**`daily_revenue` and `passenger_load` are the two inputs to the risk engine.**
-In the original draft they defaulted to `0` and were never seeded — which
-zeroes `stake` in `risk.js`, so every vehicle scores `0` and the ranking
-collapses. They are now populated. If someone ever adds a vehicle and leaves
-them blank, that vehicle silently sinks to the bottom of the queue forever.
+Four indexes, matching what the app actually does: `plate_number` (lookup on
+scan), `route_id` (find a vehicle's spares), `vehicle_id` (documents on fleet
+load), `expiry_date` (the expiry-order ranking).
+
+**`daily_revenue`, `passenger_load` and `route_id` are the inputs the risk
+engine and scheduler need.** In the original draft `daily_revenue` and
+`passenger_load` defaulted to `0` and were never seeded — which zeroes
+`stake` in `risk.js`, so every vehicle scores `0` and the ranking collapses.
+They're now populated, and `passenger_load` does double duty: it's still the
+vehicle's capacity, but it's read as a **capability constraint** for
+substitution matching (can this spare's capacity cover that route?), not as
+a weighted value. If someone adds a vehicle and leaves these blank, it
+silently sinks to the bottom of the queue and can never be matched as a
+spare.
 
 ### Reading — `api/_db.js`
 
@@ -174,8 +193,10 @@ needs the server to know the fleet while your browser is closed.
 The vehicles, VINs and certificate numbers are synthetic but real-shaped.
 `daily_revenue` and `passenger_load` are our estimates, chosen to be plausible
 for a South African operator — trucks earn most and carry nobody, buses carry
-up to 65. Those two numbers drive the whole ranking, so it's fair to ask, and
-they're visible in `db/schema.sql`.
+up to 65. The route assignments and the deliberately uneven spare counts
+(trucks well covered, buses at zero) are also our design choice, not
+measured. Those numbers drive the whole ranking and schedule, so it's fair to
+ask, and they're all visible in `db/schema.sql`.
 
 **"Isn't the demo rigged if you picked those numbers?"**
 The numbers are estimates; the mechanism isn't. Change any of them and the

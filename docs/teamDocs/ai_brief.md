@@ -3,13 +3,14 @@
 **Owner's job:** explain exactly where AI is used, where it deliberately isn't, and why the
 scoring engine is a formula rather than a model.
 
-There are **two** things people call "the AI" in this product, and they are completely
-different. Keep them separate when you answer:
+There are **three** things people might call "the AI" in this product, and only one of them
+is. Keep them separate when you answer:
 
 | | What it is | Where |
 |---|---|---|
 | **Vision extraction** | A real vision model reading a photographed certificate | `api/scan.js` |
 | **The risk engine** | A deterministic formula, **no model involved** | `src/lib/risk.js` |
+| **The maintenance scheduler** | Earliest-deadline-first placement, **no model involved** | `src/lib/schedule.js` |
 
 Conflating them is the fastest way to lose credibility with a technical judge.
 
@@ -116,20 +117,30 @@ put `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in `.env` (local) or the Vercel proj
 
 ### The formula
 
-`src/lib/risk.js:44-84`. Pure functions — no fetch, no state, no model call.
+`src/lib/risk.js`. Pure functions — no fetch, no state, no model call.
 
 ```
-urgency  U = 1 if expired, else clamp((30 - daysLeft) / 30, 0, 1)
-revenue  R = dailyIncome    / highest in fleet      → 0..1
-safety   S = passengerLoad  / highest in fleet      → 0..1
-stake      = w·S + (1-w)·R        w = the slider, default 0.5
-score      = 100 × U × stake
+urgency   U = 1 if expired, else clamp((30 - daysLeft) / 30, 0, 1)
+revenue   R = dailyIncome    / highest in fleet                       → 0..1
+scarcity  C = 1 - (compatible, compliant spares for this route / 3)   → 0..1
+stake       = w·C + (1-w)·R        w = the slider, default 0.5
+score       = 100 × U × stake
 ```
+
+`C` replaced an earlier `S` for "safety" (passenger count relative to the fleet's fullest
+vehicle) — the team's own critique of that version: it was a moral weighting exercise, and
+it didn't actually buy safety, just correlated with it. Scarcity is counted, not assigned:
+`scarcityFor()` looks at the live fleet for spares matching this vehicle's type with enough
+capacity for its route, that are themselves currently compliant. Zero such spares scores 1;
+three or more scores 0. A vehicle with no route (itself a spare) scores 0 — there's nothing
+for it to protect. Same schema, same seed data (`passenger_load` didn't change), completely
+different meaning: capability, not a value judgment.
 
 **Why multiplicative rather than additive:** urgency gates everything. A vehicle with 200
-days of runway scores near zero no matter how much it earns or carries. An expired document
-pins `U` to 1 and the vehicle to the top. An additive model would let a high-revenue vehicle
-with a year of runway outrank a taxi expiring tomorrow — which is exactly the wrong answer.
+days of runway scores near zero no matter how much it earns or how scarce its coverage is.
+An expired document pins `U` to 1 and the vehicle to the top. An additive model would let a
+high-revenue vehicle with a year of runway outrank one expiring tomorrow — which is exactly
+the wrong answer.
 
 Two details not in the README, worth knowing before someone finds them:
 
@@ -151,15 +162,17 @@ about the same vehicle on the same screen. One function, one answer.
 
 ### Reasoning strings — deliberately not an LLM
 
-`formatReasoning` (`:109-120`) is plain string templating:
+`formatReasoning` is plain string templating — real output, pulled live from the seed data:
 
-> `11 days to noncompliance · carries 14 passengers daily · R1,400/day at risk`
+> `90 days to noncompliance · covers N2 Cape Town-Somerset West commuter bus route · R3 800/day at risk`
 
-The header comment states why (`:108`): *no second LLM call, so it's instant and never
-fails.* A second model call here would add latency to every re-render, introduce a failure
-mode in the exact moment the room is watching, and produce non-deterministic text for a
-compliance figure. The string is generated once and reused verbatim in the Action Queue's
-"Why" row and the Risk pane tooltip.
+That's the demo bus *before* it's scanned — plenty of runway on the stale record. It used to
+name a passenger count instead of a route; now it names the actual thing at stake if the
+vehicle goes offline. The header comment states why there's no second model call here:
+*instant and never fails.* A model call would add latency to every re-render, introduce a
+failure mode in the exact moment the room is watching, and produce non-deterministic text
+for a compliance figure. The string is generated once and reused verbatim in the Action
+Queue's "Why" row and the Risk pane tooltip.
 
 ---
 
@@ -175,7 +188,8 @@ because I have to be able to defend the number on stage.
 Three reasons. It has to be instant, because it recomputes on every slider drag. It has to
 be identical every time, because an owner comparing two vehicles can't get different answers
 on different days. And I have to be able to say the formula out loud — which I can:
-urgency times stake, where stake is the revenue/safety blend you control with the slider.
+urgency times stake, where stake is the revenue/coverage-scarcity blend you control with the
+slider, and scarcity is counted from real spare capacity, not assigned.
 
 **"What's your extraction accuracy?"**
 We haven't measured it against a full photographed test set yet — that was scoped for

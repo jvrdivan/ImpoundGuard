@@ -68,6 +68,11 @@ export async function loadFleet() {
       v.driver_name,
       v.daily_revenue,
       v.passenger_load,
+      r.route_id,
+      r.route_code,
+      r.route_name,
+      r.min_capacity,
+      r.daily_value,
       COALESCE(
         json_agg(
           json_build_object(
@@ -83,8 +88,9 @@ export async function loadFleet() {
         '[]'
       ) AS documents
     FROM vehicles v
+    LEFT JOIN routes r ON r.route_id = v.route_id
     LEFT JOIN documents d ON d.vehicle_id = v.vehicle_id
-    GROUP BY v.vehicle_id
+    GROUP BY v.vehicle_id, r.route_id
     ORDER BY v.vehicle_id
   `);
 
@@ -97,6 +103,17 @@ export async function loadFleet() {
     dailyIncome: row.daily_revenue,
     passengerLoad: row.passenger_load,
     documents: row.documents,
+    // null for the vehicles held as spares — this is the only signal in the
+    // whole payload that says "this one has no route to protect and is
+    // available to cover someone else's." See src/lib/schedule.js.
+    route: row.route_id
+      ? {
+          code: row.route_code,
+          name: row.route_name,
+          minCapacity: row.min_capacity,
+          dailyValue: row.daily_value,
+        }
+      : null,
   }));
 }
 

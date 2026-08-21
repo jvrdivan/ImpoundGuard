@@ -13,7 +13,7 @@
 // without being told. We are NOT claiming a researched national average
 // for impound duration — it is a user-set planning assumption.
 
-import { daysUntil, worstDocument } from './risk';
+import { daysUntil, worstDocument, scarcityFor } from './risk';
 
 // Windows are exclusive: a vehicle lands in exactly one.
 //
@@ -42,18 +42,28 @@ function windowFor(daysLeft, hasDoc) {
 /**
  * Bucket the fleet by when each vehicle next falls out of compliance, and
  * cost each bucket against the impound-days assumption.
+ *
+ * uncoveredRouteDays replaced an earlier passenger-journeys figure. A
+ * route counts as uncovered here when its scarcity is 1 — zero compliant,
+ * capable spares exist right now — the same binary risk.js's scoring and
+ * the schedule panel both key off. Anything with at least one spare,
+ * however thin, is not counted here; the continuous picture (1 spare vs
+ * 3+) lives in the Risk pane's quadrant, not in this headline total.
  */
 export function buildForecast(fleet, { impoundDays = 5, now = new Date() } = {}) {
+  const spares = fleet.filter((v) => v.route === null);
+
   const rows = fleet.map((vehicle) => {
     const doc = worstDocument(vehicle, now);
     const daysLeft = doc ? daysUntil(doc.expiryDate, now) : -Infinity;
+    const scarcity = scarcityFor(vehicle, spares, now);
     return {
       vehicle,
       doc,
       daysLeft,
       windowKey: windowFor(daysLeft, !!doc),
       lostRevenue: vehicle.dailyIncome * impoundDays,
-      passengerJourneys: vehicle.passengerLoad * impoundDays,
+      uncoveredRouteDays: scarcity === 1 ? impoundDays : 0,
     };
   });
 
@@ -64,7 +74,7 @@ export function buildForecast(fleet, { impoundDays = 5, now = new Date() } = {})
       vehicles: members,
       count: members.length,
       lostRevenue: members.reduce((s, r) => s + r.lostRevenue, 0),
-      passengerJourneys: members.reduce((s, r) => s + r.passengerJourneys, 0),
+      uncoveredRouteDays: members.reduce((s, r) => s + r.uncoveredRouteDays, 0),
     };
   });
 
@@ -83,7 +93,7 @@ export function summariseHorizon(forecast, horizonDays) {
     vehicleCount: inScope.length,
     fleetSize: forecast.rows.length,
     lostRevenue: inScope.reduce((s, r) => s + r.lostRevenue, 0),
-    passengerJourneys: inScope.reduce((s, r) => s + r.passengerJourneys, 0),
+    uncoveredRouteDays: inScope.reduce((s, r) => s + r.uncoveredRouteDays, 0),
     vehicles: inScope.sort((a, b) => a.daysLeft - b.daysLeft),
   };
 }
@@ -98,7 +108,7 @@ export function buildCsv(ranked, { impoundDays, now = new Date() } = {}) {
   const header = [
     'Plate', 'Vehicle', 'Type', 'Driver', 'Document type', 'Document number',
     'Holder', 'Issued', 'Expires', 'Days left', 'Verified',
-    'Daily income (R)', 'Passengers', 'Risk score',
+    'Daily income (R)', 'Route', 'Coverage scarcity', 'Risk score',
     `Revenue at risk (R, ${impoundDays}-day impound)`,
   ];
 
@@ -117,7 +127,8 @@ export function buildCsv(ranked, { impoundDays, now = new Date() } = {}) {
       doc ? Math.ceil(r.daysLeft) : '',
       doc ? (doc.verified === false ? 'unverified' : 'verified') : '',
       r.vehicle.dailyIncome,
-      r.vehicle.passengerLoad,
+      r.vehicle.route ? r.vehicle.route.name : 'SPARE (reserve)',
+      `${Math.round(r.scarcity * 100)}%`,
       Math.round(r.score),
       r.vehicle.dailyIncome * impoundDays,
     ].map(csvCell).join(',');

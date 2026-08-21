@@ -24,6 +24,7 @@ import ActionQueue from './components/ActionQueue';
 import NextBestAction from './components/NextBestAction';
 import RiskPanel from './components/RiskPanel';
 import CertificatesPanel from './components/CertificatesPanel';
+import SchedulePanel from './components/SchedulePanel';
 import ReportsPanel from './components/ReportsPanel';
 import SessionSettings from './components/SessionSettings';
 import ScanPanel from './components/ScanPanel';
@@ -43,6 +44,7 @@ export default function App() {
   const fleetRef = useRef(null);
   const certificatesRef = useRef(null);
   const riskRef = useRef(null);
+  const scheduleRef = useRef(null);
   const reportsRef = useRef(null);
   const settingsRef = useRef(null);
 
@@ -134,6 +136,7 @@ export default function App() {
       fleet: fleetRef,
       certificates: certificatesRef,
       risk: riskRef,
+      schedule: scheduleRef,
       reports: reportsRef,
       settings: settingsRef,
     }[key];
@@ -215,6 +218,10 @@ export default function App() {
 
         <div ref={certificatesRef} className="scroll-mt-4">
           <CertificatesPanel fleet={fleet} onScanClick={() => setScanPanelOpen(true)} />
+        </div>
+
+        <div ref={scheduleRef} className="scroll-mt-4">
+          <SchedulePanel fleet={fleet} />
         </div>
 
         <div ref={reportsRef} className="scroll-mt-4">

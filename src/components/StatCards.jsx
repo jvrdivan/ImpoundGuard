@@ -31,11 +31,11 @@ export default function StatCards({ stats }) {
       icon: RandIcon,
     },
     {
-      label: 'Passengers exposed',
-      value: stats.passengersExposed,
-      sub: 'carried daily by at-risk vehicles',
+      label: 'Routes uncoverable',
+      value: stats.uncoverableCount,
+      sub: 'at-risk vehicles with zero compatible spares',
       tone: 'brand',
-      icon: PeopleIcon,
+      icon: RouteIcon,
     },
     {
       label: 'Unassessed',
@@ -79,11 +79,12 @@ function RandIcon(props) {
     </svg>
   );
 }
-function PeopleIcon(props) {
+function RouteIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <circle cx="9" cy="8" r="3" />
-      <path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6M16 8a3 3 0 110-6M23 20c0-2.8-2.2-5.1-5-5.7" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="19" r="2.5" />
+      <circle cx="18" cy="5" r="2.5" />
+      <path d="M6 16.5V13a4 4 0 014-4h4a4 4 0 004-4" strokeLinecap="round" strokeDasharray="2.5 3" />
     </svg>
   );
 }

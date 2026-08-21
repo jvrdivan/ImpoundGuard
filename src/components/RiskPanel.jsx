@@ -1,15 +1,21 @@
 // src/components/RiskPanel.jsx
 //
 // Makes the scoring formula visible rather than trusting the pitch to
-// explain it. Two views of the same eight numbers, cross-linked through
-// one shared hover state — pointing at a vehicle in either view dims
-// every other vehicle in BOTH views and surfaces its numbers:
-//   1. A revenue-vs-safety quadrant — the top-left corner is exactly the
-//      vehicles a profit-only ranking would neglect, which is the entire
-//      argument for building a risk engine instead of a reminder app.
+// explain it. Two views of the same numbers, cross-linked through one
+// shared hover state — pointing at a vehicle in either view dims every
+// other vehicle in BOTH views and surfaces its numbers:
+//   1. A revenue-vs-coverage-scarcity quadrant — the top-left corner is
+//      exactly the vehicles a profit-only ranking would neglect, because
+//      nothing else in the fleet can run their route. That's the argument
+//      for building a risk engine instead of a reminder app.
 //   2. A per-vehicle breakdown of the three inputs that produced each
 //      score, so "why is this vehicle ranked here" has a visual answer
 //      beyond the reasoning string in the Action Queue.
+//
+// The y-axis was "safety exposure" (passenger load relative to the
+// fleet's fullest vehicle) — a moral weighting. It's now "how hard is
+// this to replace," computed from real spare capacity in risk.js's
+// scarcityFor(). Same shape of chart, same argument, no longer arbitrary.
 
 import { useState } from 'react';
 import { classifyStatus, STATUS } from '../lib/risk';
@@ -40,7 +46,7 @@ const PLOT_W = W - PAD.l - PAD.r;
 const PLOT_H = H - PAD.t - PAD.b;
 
 const toX = (revenue) => PAD.l + revenue * PLOT_W;
-const toY = (safety) => PAD.t + (1 - safety) * PLOT_H;
+const toY = (scarcity) => PAD.t + (1 - scarcity) * PLOT_H;
 
 export default function RiskPanel({ ranked, onViewVehicle }) {
   const [hoveredId, setHoveredId] = useState(null);
@@ -50,7 +56,7 @@ export default function RiskPanel({ ranked, onViewVehicle }) {
       <div className="mb-4">
         <h2 className="text-base font-semibold text-slate-900">Risk breakdown</h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Revenue exposure vs. passenger-safety exposure, dot size = urgency. Hover a vehicle for detail, click to jump to it.
+          Revenue exposure vs. how hard this vehicle is to replace, dot size = urgency. Hover a vehicle for detail, click to jump to it.
         </p>
       </div>
 
@@ -83,21 +89,22 @@ function Legend() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-[11px] text-slate-500">
       <span className="inline-flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-full bg-unassessed/10 border border-unassessed/40" />
-        top-left: overlooked by a revenue-only view
+        top-left: low revenue, nothing else can cover it — overlooked by a revenue-only view
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span className="w-2.5 h-2.5 rounded-full bg-warn/10 border border-warn/40" />
-        bottom-right: revenue-only favourites
+        bottom-right: high revenue, easily covered — a revenue-only favourite
       </span>
     </div>
   );
 }
 
 // How many dots carry a printed plate label. Labelling every vehicle worked
-// at 8 and collapses at fleet scale: vehicles carrying no passengers all sit
-// at safety = 0, so their dots and labels pile up along the x-axis. The
-// vehicles worth naming on sight are the high scorers; everything else is
-// identified by hovering, which the tooltip already handles.
+// at 8 and collapses at fleet scale: vehicles with three or more compliant
+// spares all sit at scarcity = 0, so their dots and labels pile up along
+// the x-axis. The vehicles worth naming on sight are the high scorers;
+// everything else is identified by hovering, which the tooltip already
+// handles.
 const MAX_LABELLED_DOTS = 6;
 
 function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
@@ -176,13 +183,13 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
           fontWeight="600"
           transform={`rotate(-90, 12, ${PAD.t + PLOT_H / 2})`}
         >
-          Safety exposure →
+          Hard to replace →
         </text>
 
         {ranked.map((r) => {
           const status = classifyStatus(r);
           const cx = toX(r.revenue);
-          const cy = toY(r.safety);
+          const cy = toY(r.scarcity);
           const radius = MIN_DOT_RADIUS + r.urgency * DOT_RANGE;
           const isHovered = hoveredId === r.vehicle.id;
           const isDimmed = hoveredId !== null && !isHovered;
@@ -223,7 +230,7 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
           );
         })}
 
-        {hovered && <DotTooltip result={hovered} cx={toX(hovered.revenue)} cy={toY(hovered.safety)} />}
+        {hovered && <DotTooltip result={hovered} cx={toX(hovered.revenue)} cy={toY(hovered.scarcity)} />}
       </svg>
     </div>
   );
@@ -260,7 +267,7 @@ function Meter({ value, className }) {
 }
 
 function BreakdownRow({ result, onViewVehicle, isHovered, isDimmed, onHoverStart, onHoverEnd }) {
-  const { vehicle, urgency, revenue, safety, score } = result;
+  const { vehicle, urgency, revenue, scarcity, score } = result;
 
   return (
     <div className="relative" onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
@@ -278,8 +285,8 @@ function BreakdownRow({ result, onViewVehicle, isHovered, isDimmed, onHoverStart
         <Meter value={urgency} className="bg-danger" />
         <span className="text-[10px] text-slate-500 text-right">R</span>
         <Meter value={revenue} className="bg-warn" />
-        <span className="text-[10px] text-slate-500 text-right">S</span>
-        <Meter value={safety} className="bg-brand" />
+        <span className="text-[10px] text-slate-500 text-right">C</span>
+        <Meter value={scarcity} className="bg-brand" />
 
         <span className="text-xs font-semibold text-slate-900 tabular-nums text-right">{Math.round(score)}</span>
       </button>
@@ -290,7 +297,7 @@ function BreakdownRow({ result, onViewVehicle, isHovered, isDimmed, onHoverStart
           <div className="mt-2 flex gap-3 text-[11px] text-slate-500">
             <span>Urgency <b className="text-slate-700">{Math.round(urgency * 100)}%</b></span>
             <span>Revenue <b className="text-slate-700">{Math.round(revenue * 100)}%</b></span>
-            <span>Safety <b className="text-slate-700">{Math.round(safety * 100)}%</b></span>
+            <span>Coverage scarcity <b className="text-slate-700">{Math.round(scarcity * 100)}%</b></span>
           </div>
         </div>
       )}
