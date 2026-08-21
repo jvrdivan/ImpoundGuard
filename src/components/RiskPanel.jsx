@@ -46,20 +46,21 @@ const DOT_RANGE = MAX_DOT_RADIUS - MIN_DOT_RADIUS;
 // label — which is what happened with the 100%-revenue vehicle and the
 // "100%" x-axis tick.
 const PAD = { l: 52, r: 16, t: 16, b: 40 };
-// Wide enough to read as "fills the top of the panel" without going all
-// the way to the panel's edge — a first pass stretched this to W:H 4:1,
-// which flattened the plot area into a thin band and made the scarcity
-// axis's four possible values (spares 0/1/2/3+) read as glitchy perfect
-// rows instead of a normal scatter. Capping the render width (see the
-// max-w-[1000px] wrapper below) and keeping H proportionally taller fixes
-// that without shrinking back to the old cramped size.
-const W = 1000;
-const H = 460;
+const W = 1200;
+const H = 300;
 const PLOT_W = W - PAD.l - PAD.r;
 const PLOT_H = H - PAD.t - PAD.b;
 
 const toX = (revenue) => PAD.l + revenue * PLOT_W;
 const toY = (scarcity) => PAD.t + (1 - scarcity) * PLOT_H;
+
+// scarcityFor() in risk.js is clamp(1 - compatibleSpares / 3, 0, 1) for an
+// integer compatibleSpares of 0/1/2/3+ — so every vehicle's y-position is
+// one of exactly these four values. Vehicles sharing a spare count land on
+// the same row; that's the real data, not a rendering bug. The gridlines
+// below snap to these same four bands instead of a generic 0/50/100 split,
+// so the rows read as the discrete steps they are.
+const SCARCITY_BANDS = [0, 1 / 3, 2 / 3, 1];
 
 export default function RiskPanel({ ranked, onViewVehicle }) {
   const [hoveredId, setHoveredId] = useState(null);
@@ -144,23 +145,26 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
   );
 
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2 max-w-[1000px]">
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto overflow-visible" role="img" aria-label="Revenue vs safety risk quadrant">
         {/* quadrant tints — replace floating text callouts, which collided
             with data points at real coordinates. A colour wash can't collide. */}
         <rect x={PAD.l} y={PAD.t} width={PLOT_W / 2} height={PLOT_H / 2} fill="#7c3aed" fillOpacity="0.05" />
         <rect x={PAD.l + PLOT_W / 2} y={PAD.t + PLOT_H / 2} width={PLOT_W / 2} height={PLOT_H / 2} fill="#b45309" fillOpacity="0.05" />
 
-        {/* quarter gridlines for a less empty plot area */}
+        {/* vertical quarter gridlines — revenue is continuous, so these are
+            purely visual spacing, not meaningful bands. */}
         {[0.25, 0.75].map((f) => (
-          <g key={f}>
-            <line x1={toX(f)} y1={PAD.t} x2={toX(f)} y2={PAD.t + PLOT_H} stroke="#eef2f7" />
-            <line x1={PAD.l} y1={toY(f)} x2={PAD.l + PLOT_W} y2={toY(f)} stroke="#eef2f7" />
-          </g>
+          <line key={'vx' + f} x1={toX(f)} y1={PAD.t} x2={toX(f)} y2={PAD.t + PLOT_H} stroke="#eef2f7" />
         ))}
-        {/* 50% divider, slightly stronger */}
         <line x1={toX(0.5)} y1={PAD.t} x2={toX(0.5)} y2={PAD.t + PLOT_H} stroke="#e2e8f0" strokeDasharray="3 3" />
-        <line x1={PAD.l} y1={toY(0.5)} x2={PAD.l + PLOT_W} y2={toY(0.5)} stroke="#e2e8f0" strokeDasharray="3 3" />
+
+        {/* horizontal gridlines at scarcity's actual four possible values —
+            not a generic 0/50/100 split, so the rows of dots that land on
+            them read as intentional steps. */}
+        {SCARCITY_BANDS.slice(1, -1).map((f) => (
+          <line key={'hy' + f} x1={PAD.l} y1={toY(f)} x2={PAD.l + PLOT_W} y2={toY(f)} stroke="#e2e8f0" strokeDasharray="3 3" />
+        ))}
 
         {/* axes */}
         <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PAD.t + PLOT_H} stroke="#cbd5e1" />
@@ -180,7 +184,7 @@ function Quadrant({ ranked, onViewVehicle, hoveredId, onHover }) {
             {Math.round(f * 100)}%
           </text>
         ))}
-        {[0, 0.5, 1].map((f) => (
+        {SCARCITY_BANDS.map((f) => (
           <text
             key={'y' + f}
             x={PAD.l - MAX_DOT_RADIUS - 6}
