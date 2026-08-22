@@ -22,12 +22,18 @@ const BADGE_BY_DOC_STATUS = {
 // asked to keep an eye on, regardless of its expiry date.
 const needsAttention = (row) => row.status !== DOC_STATUS.VALID || row.doc?.verified === false;
 
+// Same reasoning as ActionQueue's cap: even the attention-filtered register
+// is a lot of stacked cards on a phone.
+const MOBILE_ROW_CAP = 3;
+
 export default function CertificatesPanel({ fleet, onScanClick }) {
   const [showAll, setShowAll] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const rows = buildCertificateRegister(fleet);
   const unverifiedCount = rows.filter((r) => r.doc && r.doc.verified === false).length;
   const hiddenCount = rows.filter((r) => !needsAttention(r)).length;
   const visible = showAll ? rows : rows.filter(needsAttention);
+  const mobileMoreCount = Math.max(0, visible.length - MOBILE_ROW_CAP);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
@@ -68,17 +74,31 @@ export default function CertificatesPanel({ fleet, onScanClick }) {
               <div className="py-10 text-center text-sm text-slate-500">Nothing needs attention right now.</div>
             ) : (
               visible.map((row, i) => (
-                <Row key={row.vehicle.id + '-' + (row.doc?.docNumber || 'none') + i} row={row} onScanClick={onScanClick} />
+                <Row
+                  key={row.vehicle.id + '-' + (row.doc?.docNumber || 'none') + i}
+                  row={row}
+                  onScanClick={onScanClick}
+                  mobileHidden={!mobileExpanded && i >= MOBILE_ROW_CAP}
+                />
               ))
             )}
           </div>
         </div>
       </div>
+
+      {mobileMoreCount > 0 && (
+        <button
+          onClick={() => setMobileExpanded((v) => !v)}
+          className="sm:hidden w-full mt-2 rounded-lg border border-slate-200 px-3 h-11 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          {mobileExpanded ? 'Show fewer' : `Show ${mobileMoreCount} more`}
+        </button>
+      )}
     </div>
   );
 }
 
-function Row({ row, onScanClick }) {
+function Row({ row, onScanClick, mobileHidden }) {
   const { vehicle, doc, daysLeft, status } = row;
   const badge = BADGE_BY_DOC_STATUS[status];
   const needsAction = status !== DOC_STATUS.VALID;
@@ -86,7 +106,7 @@ function Row({ row, onScanClick }) {
   return (
     <>
     {/* Phones get a stacked card; the seven-column register needs 720px. */}
-    <div className="sm:hidden px-2 py-3 space-y-2">
+    <div className={`sm:hidden px-2 py-3 space-y-2 ${mobileHidden ? 'hidden' : ''}`}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-slate-900 truncate">{vehicle.plate}</div>
