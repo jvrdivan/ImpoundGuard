@@ -32,6 +32,8 @@ api/_db.js                   pooled Postgres access; maps DB columns -> the shap
 api/fleet.js                 GET the fleet · POST a confirmed certificate
 api/reset.js                 restore documents to the seeded snapshot
 api/scan.js                  one vision-model call, 12s timeout — stateless, stores nothing
+api/insights.js              on-demand AI narrative over a fleet summary — button-triggered
+                             only, never automatic; see AIInsightsPanel.jsx
 
 src/App.jsx                  loads the fleet on mount, writes on confirm, re-derives
                              the ranking every render

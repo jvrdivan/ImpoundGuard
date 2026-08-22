@@ -3,12 +3,13 @@
 **Owner's job:** explain exactly where AI is used, where it deliberately isn't, and why the
 scoring engine is a formula rather than a model.
 
-There are **three** things people might call "the AI" in this product, and only one of them
-is. Keep them separate when you answer:
+There are **four** things people might call "the AI" in this product, and only two of them
+are. Keep them separate when you answer:
 
 | | What it is | Where |
 |---|---|---|
 | **Vision extraction** | A real vision model reading a photographed certificate | `api/scan.js` |
+| **AI insights** | A real model, on demand only, narrating an already-computed summary | `api/insights.js` |
 | **The risk engine** | A deterministic formula, **no model involved** | `src/lib/risk.js` |
 | **The maintenance scheduler** | Earliest-deadline-first placement, **no model involved** | `src/lib/schedule.js` |
 
@@ -176,13 +177,49 @@ Queue's "Why" row and the Risk pane tooltip.
 
 ---
 
+## Part C — AI insights (the second real model call)
+
+### What it does
+
+A "Generate insight" button on the dashboard (`AIInsightsPanel.jsx`) sends a small, already-
+computed summary — the top 10 vehicles by score, plus the same headline counts the KPI cards
+show — to `api/insights.js`, which asks Claude (or Gemini, same fallback order as scan.js)
+to write 3-5 short, concrete observations a fleet manager should act on today.
+
+### Why this doesn't contradict Part B
+
+Part B's whole argument is that the *ranking* has to be instant, deterministic, and
+defensible on stage — none of which apply to a plain-language summary a person deliberately
+asked for once. Three things keep this from becoming what Part B argues against:
+
+- **It never runs on its own.** No auto-refresh, no recompute on scan, no polling — only a
+  click calls the API. An LLM call on every render or every scan would burn an API budget
+  for no reason anyone asked for; a button press has an obvious reason.
+- **It only ever sees a summary, never the raw fleet or an invitation to invent one.** The
+  prompt explicitly forbids naming a vehicle, plate, or number not present in the data it was
+  given — same discipline as the extraction prompt's `null` over guessing.
+- **The result is visibly labelled AI-generated**, with its generation time and which model
+  produced it, and cached in `localStorage` rather than presented as live. It reads as a
+  narrated summary of numbers you can already see above it, not a new source of truth.
+
+### If asked to defend it
+
+The panel's own copy says it plainly: "written on request — never generated automatically."
+If a judge asks whether this could hallucinate a number, the honest answer is the same shape
+as the extraction one — the prompt constrains it to the data given, but a model can still get
+it wrong, which is why every figure it might reference is *also* shown elsewhere on the
+dashboard by the deterministic engine. Nothing here is the only place a number lives.
+
+---
+
 ## Likely judge questions
 
 **"Where is the AI, actually?"**
-One place: reading the certificate photo. A vision model extracts plate and expiry from a
-hand-taken photograph. The ranking underneath is a deterministic formula — five lines of
-arithmetic — because a compliance figure needs to be explainable and reproducible, and
-because I have to be able to defend the number on stage.
+Two places. Reading the certificate photo — a vision model extracts plate and expiry from a
+hand-taken photograph. And the "Generate insight" button — a model narrates an
+already-computed summary, only when clicked. The ranking underneath both is a deterministic
+formula — five lines of arithmetic — because a compliance figure needs to be explainable and
+reproducible, and because I have to be able to defend the number on stage.
 
 **"Why not use an LLM for the risk scoring too?"**
 Three reasons. It has to be instant, because it recomputes on every slider drag. It has to
@@ -192,11 +229,10 @@ urgency times stake, where stake is the revenue/coverage-scarcity blend you cont
 slider, and scarcity is counted from real spare capacity, not assigned.
 
 **"What's your extraction accuracy?"**
-We haven't measured it against a full photographed test set yet — that was scoped for
-Saturday morning and the API key isn't configured. What we built instead is the assumption
-that it will sometimes be wrong: the confirm step shows every extracted field as editable
-before anything is applied, so a misread plate is a two-second fix rather than a silent
-error.
+We haven't measured it against a full photographed test set. What we built instead is the
+assumption that it will sometimes be wrong: the confirm step shows every extracted field as
+editable before anything is applied, so a misread plate is a two-second fix rather than a
+silent error.
 
 **"What if the model hallucinates a date?"**
 The prompt mandates `null` over guessing, and the confirm step puts a human between

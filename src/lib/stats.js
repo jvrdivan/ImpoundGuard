@@ -26,6 +26,38 @@ export function computeFleetStats(ranked) {
   };
 }
 
+/**
+ * Compact payload for the AI insights endpoint — deliberately not the raw
+ * fleet. Keeps the prompt small and cheap, and reuses classifyStatus() so
+ * an AI-written observation can never describe a vehicle's status
+ * differently than the badge sitting next to it everywhere else on screen.
+ */
+export function buildInsightsSummary(ranked) {
+  const stats = computeFleetStats(ranked);
+  return {
+    fleetSize: ranked.length,
+    atRiskCount: stats.atRiskCount,
+    uncoverableCount: stats.uncoverableCount,
+    unassessedCount: stats.unassessedCount,
+    dailyRevenueExposed: stats.dailyRevenueExposed,
+    // Top 10 by score is enough for a handful of concrete observations
+    // without paying to describe the whole fleet on every click.
+    vehicles: [...ranked]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map((r) => ({
+        plate: r.vehicle.plate,
+        label: r.vehicle.label,
+        status: classifyStatus(r),
+        daysLeft: r.isExpired ? 0 : r.daysLeft === Infinity ? null : Math.ceil(r.daysLeft),
+        dailyIncome: r.vehicle.dailyIncome,
+        scarcityPct: Math.round(r.scarcity * 100),
+        hasRoute: !!r.vehicle.route,
+        score: Math.round(r.score),
+      })),
+  };
+}
+
 const BUCKETS = [
   { key: 'critical', status: STATUS.CRITICAL, label: 'Critical', barClass: 'bg-danger', dotClass: 'bg-danger' },
   { key: 'dueSoon', status: STATUS.DUE_SOON, label: 'Due soon', barClass: 'bg-warn', dotClass: 'bg-warn' },

@@ -64,3 +64,15 @@ export async function extractCertificate({ imageBase64, mimeType }) {
     body: JSON.stringify({ imageBase64, mimeType }),
   });
 }
+
+/**
+ * On-demand AI narrative over a fleet summary — only ever called from the
+ * "Generate insight" button in AIInsightsPanel, never automatically.
+ */
+export async function generateInsights(summary) {
+  return request('/api/insights', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ summary }),
+  });
+}

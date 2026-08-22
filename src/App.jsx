@@ -13,7 +13,7 @@ import { MotionConfig } from 'framer-motion';
 import { DEMO_SCAN_RESULT } from './data/demoScan';
 import { fetchFleet, saveDocument, resetDemoData } from './lib/api';
 import { rankFleet } from './lib/risk';
-import { computeFleetStats, computeComplianceBuckets, pickNextBestActions, buildAlerts } from './lib/stats';
+import { computeFleetStats, computeComplianceBuckets, pickNextBestActions, buildAlerts, buildInsightsSummary } from './lib/stats';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import PrivacyBanner from './components/PrivacyBanner';
@@ -23,6 +23,7 @@ import RiskExposurePanel from './components/RiskExposurePanel';
 import ActionQueue from './components/ActionQueue';
 import NextBestAction from './components/NextBestAction';
 import RiskPanel from './components/RiskPanel';
+import AIInsightsPanel from './components/AIInsightsPanel';
 import CertificatesPanel from './components/CertificatesPanel';
 import SchedulePanel from './components/SchedulePanel';
 import ReportsPanel from './components/ReportsPanel';
@@ -184,6 +185,8 @@ export default function App() {
         <PrivacyBanner />
 
         <StatCards stats={stats} />
+
+        <AIInsightsPanel buildSummary={() => buildInsightsSummary(ranked)} />
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-4">
           <ComplianceOutlook buckets={buckets} />
