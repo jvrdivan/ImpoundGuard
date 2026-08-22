@@ -31,12 +31,14 @@ Rules:
 - Each observation needs a short title (under 8 words) and one sentence of detail.
 - Assign each observation a "tone": "critical" for anything needing action today, "warn" for things needing attention soon, "info" for a neutral or positive observation.
 
-Return ONLY a single JSON object, no markdown fences, no commentary, with exactly this field:
+Return ONLY a single JSON object, no markdown fences, no commentary before or after it, with
+exactly this field:
 {
   "insights": [
     { "title": string, "detail": string, "tone": "critical" | "warn" | "info" }
   ]
 }
+Your entire reply must be that JSON object — start with { and end with }, nothing else.
 
 Fleet data:
 `;
@@ -103,7 +105,11 @@ async function callAnthropic(prompt, signal) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-5',
-      max_tokens: 800,
+      // 5 insights at a sentence each is a few hundred tokens; 2048 is
+      // generous headroom rather than a tight estimate — a truncated
+      // response is invalid JSON, and 800 was cutting real responses off
+      // mid-object (surfaced as a bare "Unexpected end of JSON input").
+      max_tokens: 2048,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -112,6 +118,9 @@ async function callAnthropic(prompt, signal) {
     throw new Error(`Anthropic API error ${response.status}: ${await response.text()}`);
   }
   const data = await response.json();
+  if (data.stop_reason === 'max_tokens') {
+    throw new Error('Anthropic response was truncated before completing (hit max_tokens).');
+  }
   const text = data.content?.[0]?.text || '';
   return parseInsightsJson(text);
 }
@@ -134,6 +143,9 @@ async function callGemini(prompt, signal) {
     throw new Error(`Gemini API error ${response.status}: ${await response.text()}`);
   }
   const data = await response.json();
+  if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
+    throw new Error('Gemini response was truncated before completing (hit max output tokens).');
+  }
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   return parseInsightsJson(text);
 }
@@ -141,7 +153,16 @@ async function callGemini(prompt, signal) {
 const VALID_TONES = new Set(['critical', 'warn', 'info']);
 
 function parseInsightsJson(text) {
-  const cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  let cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  // Defensive, not the primary fix: strips stray commentary a model adds
+  // before/after the object despite being told not to. Doesn't help with a
+  // genuinely truncated response — that's what the stop_reason/finishReason
+  // checks above catch before this ever runs.
+  const first = cleaned.indexOf('{');
+  const last = cleaned.lastIndexOf('}');
+  if (first !== -1 && last !== -1 && (first > 0 || last < cleaned.length - 1)) {
+    cleaned = cleaned.slice(first, last + 1);
+  }
   const parsed = JSON.parse(cleaned);
   const list = Array.isArray(parsed.insights) ? parsed.insights : [];
   return list
