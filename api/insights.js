@@ -121,7 +121,19 @@ async function callAnthropic(prompt, signal) {
   if (data.stop_reason === 'max_tokens') {
     throw new Error('Anthropic response was truncated before completing (hit max_tokens).');
   }
-  const text = data.content?.[0]?.text || '';
+  // `content` is an array of blocks, not always text-first — a thinking or
+  // other non-text block ahead of the reply meant content[0].text was
+  // silently undefined, which JSON.parse('') on the resulting empty string
+  // surfaces as an unhelpful "Unexpected end of JSON input". Concatenating
+  // every text block is correct regardless of what else is in the array.
+  const text = (data.content || [])
+    .filter((block) => block.type === 'text')
+    .map((block) => block.text)
+    .join('');
+  if (!text) {
+    const blockTypes = (data.content || []).map((b) => b.type).join(', ') || 'none';
+    throw new Error(`Anthropic returned no text content (stop_reason: ${data.stop_reason}, blocks: ${blockTypes})`);
+  }
   return parseInsightsJson(text);
 }
 
@@ -146,7 +158,14 @@ async function callGemini(prompt, signal) {
   if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
     throw new Error('Gemini response was truncated before completing (hit max output tokens).');
   }
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  // Same defensive concatenation as the Anthropic path — parts is an array
+  // and nothing guarantees the text lands in parts[0].
+  const text = (data.candidates?.[0]?.content?.parts || [])
+    .map((part) => part.text || '')
+    .join('');
+  if (!text) {
+    throw new Error(`Gemini returned no text content (finishReason: ${data.candidates?.[0]?.finishReason})`);
+  }
   return parseInsightsJson(text);
 }
 
