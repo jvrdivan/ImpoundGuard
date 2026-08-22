@@ -19,6 +19,7 @@ const routes = {
   '/api/fleet': (await import('../api/fleet.js')).default,
   '/api/reset': (await import('../api/reset.js')).default,
   '/api/scan': (await import('../api/scan.js')).default,
+  '/api/insights': (await import('../api/insights.js')).default,
 };
 
 const MIME = {
