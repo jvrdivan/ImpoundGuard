@@ -172,7 +172,7 @@ export default function App() {
     <div className="min-h-screen flex bg-slate-50">
       <Sidebar onNavigate={handleNavigate} />
 
-      <div className="flex-1 min-w-0 px-4 md:px-8 py-7 space-y-6 max-w-[1680px]">
+      <div className="flex-1 min-w-0 px-3 sm:px-4 md:px-8 py-5 md:py-7 space-y-4 md:space-y-6 max-w-[1680px]">
         <TopBar
           alerts={alerts}
           onViewVehicle={handleViewVehicle}

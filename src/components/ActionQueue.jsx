@@ -26,14 +26,14 @@ export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, j
   const visible = searchActive || showAll ? ranked : ranked.filter((r) => classifyStatus(r) !== STATUS.COMPLIANT);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 className="text-base font-semibold text-slate-900">Action queue</h2>
         <div className="flex items-center gap-2 flex-wrap">
           {!searchActive && hiddenCount > 0 && (
             <button
               onClick={() => setShowAll((v) => !v)}
-              className="rounded-lg border border-slate-200 px-3 h-9 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+              className="rounded-lg border border-slate-200 px-3 h-11 sm:h-9 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
             >
               {showAll ? 'Hide compliant' : `View all (${hiddenCount} hidden)`}
             </button>
@@ -41,7 +41,7 @@ export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, j
           <div className="inline-flex rounded-lg border border-slate-200 p-1 bg-slate-100">
             <button
               onClick={() => onModeChange('risk')}
-              className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
+              className={`px-3 h-11 sm:h-9 rounded-md text-xs font-semibold transition-colors ${
                 mode === 'risk' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -50,7 +50,7 @@ export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, j
             <button
               onClick={() => onModeChange('expiry')}
               title="What a reminder app would show you: soonest expiry wins, safety not weighed."
-              className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
+              className={`px-3 h-11 sm:h-9 rounded-md text-xs font-semibold transition-colors ${
                 mode === 'expiry' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -61,8 +61,8 @@ export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, j
       </div>
 
       <div className="overflow-x-auto -mx-1 px-1">
-        <div className="min-w-[680px]">
-          <div className="grid grid-cols-[40px_minmax(140px,2fr)_116px_104px_112px_92px_92px] gap-3 px-2 pb-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase border-b border-slate-200">
+        <div className="sm:min-w-[680px]">
+          <div className="hidden sm:grid grid-cols-[40px_minmax(140px,2fr)_116px_104px_112px_92px_92px] gap-3 px-2 pb-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase border-b border-slate-200">
             <span>Rank</span>
             <span>Vehicle</span>
             <span>Status</span>
@@ -140,7 +140,66 @@ function Row({ rank, result, justUpdated, onScanClick }) {
       transition={{ type: 'spring', stiffness: 320, damping: 32 }}
       className={`py-3 px-2 rounded-lg ${justUpdated ? 'ring-2 ring-brand/40 bg-brand/5' : ''}`}
     >
-      <div className="grid grid-cols-[40px_minmax(140px,2fr)_116px_104px_112px_92px_92px] gap-3 items-center">
+      {/* Phones get a stacked card; the seven-column grid below needs 680px
+          and is unreadable at 390. Same data, same order of importance —
+          rank and plate first, then status, then what it costs. */}
+      <div className="sm:hidden space-y-2.5">
+        <div className="flex items-start gap-3">
+          <span
+            className={`w-7 h-7 shrink-0 rounded-full ${badge.rank} text-white text-xs font-bold flex items-center justify-center tabular-nums`}
+          >
+            {rank}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-slate-900 truncate">{vehicle.plate}</div>
+            <div className="text-xs text-slate-500 truncate">{vehicle.label}</div>
+          </div>
+          <span
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap ${badge.className}`}
+          >
+            {badge.label}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-10 text-xs">
+          {worstDoc ? (
+            <span className={isExpired ? 'text-danger font-semibold' : 'text-slate-700 font-medium'}>
+              {isExpired ? 'Expired' : `${Math.max(0, Math.ceil(daysLeft))} days`}
+              <span className="text-slate-500 font-normal"> · {worstDoc.expiryDate}</span>
+            </span>
+          ) : (
+            <span className="text-slate-500">No certificate on file</span>
+          )}
+          <span className="text-slate-800 font-medium tabular-nums">
+            R{vehicle.dailyIncome.toLocaleString('en-ZA')}
+            <span className="text-slate-500 font-normal">/day</span>
+          </span>
+          {vehicle.passengerLoad > 0 && (
+            <span className="flex items-center gap-1.5 text-slate-700 tabular-nums">
+              <PersonIcon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              {vehicle.passengerLoad}
+            </span>
+          )}
+        </div>
+
+        <div className="pl-10 text-xs text-slate-600 leading-relaxed">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mr-1.5">Why</span>
+          {reasoning}
+        </div>
+
+        {needsAction && (
+          <div className="pl-10">
+            <button
+              onClick={onScanClick}
+              className="w-full rounded-lg bg-brand px-3 h-11 text-sm font-semibold text-white hover:bg-brand/90"
+            >
+              {worstDoc ? 'Renew' : 'Scan now'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden sm:grid grid-cols-[40px_minmax(140px,2fr)_116px_104px_112px_92px_92px] gap-3 items-center">
         <span
           className={`w-7 h-7 rounded-full ${badge.rank} text-white text-xs font-bold flex items-center justify-center tabular-nums`}
         >
@@ -195,8 +254,9 @@ function Row({ rank, result, justUpdated, onScanClick }) {
         </div>
       </div>
 
-      {/* Full-width reasoning line — never competes with the columns above. */}
-      <div className="mt-2 ml-[52px] mr-2 flex items-start gap-1.5">
+      {/* Full-width reasoning line — never competes with the columns above.
+          Hidden on phones, where the stacked card above already carries it. */}
+      <div className="hidden sm:flex mt-2 ml-[52px] mr-2 items-start gap-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 shrink-0 mt-px">
           Why
         </span>

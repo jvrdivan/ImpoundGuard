@@ -21,7 +21,7 @@ export default function RiskExposurePanel({ weight, onWeightChange, disabled }) 
     weight < 0.4 ? 'Weighted toward money' : weight > 0.6 ? 'Weighted toward continuity' : 'Balanced';
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-slate-900">Risk exposure</h2>
         <ScaleIcon className="w-4 h-4 text-slate-500" />

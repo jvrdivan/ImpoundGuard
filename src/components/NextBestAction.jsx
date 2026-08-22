@@ -10,7 +10,7 @@ export default function NextBestAction({ unassessed, topRisk, onScanClick, onVie
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <TargetIcon className="w-4 h-4 text-slate-400" />
           <h2 className="text-base font-semibold text-slate-900">Next best action</h2>
@@ -70,7 +70,7 @@ function ActionRow({ icon: Icon, iconClass, title, subtitle, buttonLabel, button
         <div className="text-xs text-slate-500">{subtitle}</div>
         <button
           onClick={onClick}
-          className={`mt-2 rounded-lg px-3 h-9 text-xs font-semibold ${buttonClass}`}
+          className={`mt-2 rounded-lg px-3 h-11 sm:h-9 text-xs font-semibold ${buttonClass}`}
         >
           {buttonLabel}
         </button>
