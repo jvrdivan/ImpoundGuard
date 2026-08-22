@@ -22,6 +22,11 @@ import { formatRand } from '../lib/reports';
 export default function SchedulePanel({ fleet }) {
   const [slotsPerWeek, setSlotsPerWeek] = useState(3);
   const [maintenanceDays, setMaintenanceDays] = useState(2);
+  // The week-by-week list and the assumption sliders are the bulk of this
+  // panel's height — collapsed by default on phones, where the four stat
+  // tiles above already carry the headline numbers. Always expanded on
+  // sm+; the toggle itself is hidden there.
+  const [showDetails, setShowDetails] = useState(false);
 
   const schedule = buildSchedule(fleet, { slotsPerWeek, maintenanceDays, horizonWeeks: 12 });
   const activeWeeks = schedule.weeks.filter((w) => w.jobs.length > 0);
@@ -55,7 +60,14 @@ export default function SchedulePanel({ fleet }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+      <button
+        onClick={() => setShowDetails((v) => !v)}
+        className="sm:hidden w-full mb-4 rounded-lg border border-slate-200 px-3 h-11 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        {showDetails ? 'Hide schedule details' : 'View schedule details'}
+      </button>
+
+      <div className={`${showDetails ? 'grid' : 'hidden'} sm:grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start`}>
         <div className="space-y-4 min-w-0">
           {schedule.unschedulable.length > 0 && (
             <div className="rounded-lg border border-danger/25 bg-danger/5 p-3">

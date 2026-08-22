@@ -16,14 +16,21 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { classifyStatus, STATUS } from '../lib/risk';
 
+// Rows beyond this are still rendered (so the count and search both work),
+// just hidden on phones behind "Show more" — even the urgency-filtered list
+// is a lot of stacked cards to scroll through on a small screen.
+const MOBILE_ROW_CAP = 3;
+
 // Search intent beats the urgency filter: if a search is active, every
 // match it produced is shown regardless of the "hide compliant" default —
 // a fleet manager searching for a specific plate should always find it.
 export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, justUpdatedId, searchActive }) {
   const [showAll, setShowAll] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   const hiddenCount = ranked.filter((r) => classifyStatus(r) === STATUS.COMPLIANT).length;
   const visible = searchActive || showAll ? ranked : ranked.filter((r) => classifyStatus(r) !== STATUS.COMPLIANT);
+  const mobileMoreCount = Math.max(0, visible.length - MOBILE_ROW_CAP);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
@@ -85,12 +92,22 @@ export default function ActionQueue({ ranked, mode, onModeChange, onScanClick, j
                   result={result}
                   justUpdated={result.vehicle.id === justUpdatedId}
                   onScanClick={onScanClick}
+                  mobileHidden={!mobileExpanded && i >= MOBILE_ROW_CAP}
                 />
               ))
             )}
           </div>
         </div>
       </div>
+
+      {mobileMoreCount > 0 && (
+        <button
+          onClick={() => setMobileExpanded((v) => !v)}
+          className="sm:hidden w-full mt-2 rounded-lg border border-slate-200 px-3 h-11 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          {mobileExpanded ? 'Show fewer' : `Show ${mobileMoreCount} more`}
+        </button>
+      )}
     </div>
   );
 }
@@ -127,7 +144,7 @@ function PersonIcon(props) {
   );
 }
 
-function Row({ rank, result, justUpdated, onScanClick }) {
+function Row({ rank, result, justUpdated, onScanClick, mobileHidden }) {
   const { vehicle, worstDoc, isExpired, daysLeft, reasoning } = result;
   const status = classifyStatus(result);
   const badge = BADGE_BY_STATUS[status];
@@ -138,7 +155,7 @@ function Row({ rank, result, justUpdated, onScanClick }) {
       layout
       layoutId={vehicle.id}
       transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-      className={`py-3 px-2 rounded-lg ${justUpdated ? 'ring-2 ring-brand/40 bg-brand/5' : ''}`}
+      className={`py-3 px-2 rounded-lg ${justUpdated ? 'ring-2 ring-brand/40 bg-brand/5' : ''} ${mobileHidden ? 'hidden sm:block' : ''}`}
     >
       {/* Phones get a stacked card; the seven-column grid below needs 680px
           and is unreadable at 390. Same data, same order of importance —

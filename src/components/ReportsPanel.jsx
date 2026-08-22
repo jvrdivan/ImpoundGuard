@@ -25,6 +25,10 @@ export default function ReportsPanel({ fleet, ranked }) {
   const [horizon, setHorizon] = useState(14);
   const [impoundDays, setImpoundDays] = useState(5);
   const [exportNote, setExportNote] = useState(null);
+  // The lapse-timeline bar chart, the per-vehicle list, and the assumption
+  // slider are collapsed by default on phones — the three headline stats
+  // below already carry the numbers that matter at a glance.
+  const [showDetails, setShowDetails] = useState(false);
 
   const forecast = buildForecast(fleet, { impoundDays });
   const summary = summariseHorizon(forecast, horizon);
@@ -87,32 +91,41 @@ export default function ReportsPanel({ fleet, ranked }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-        <div>
-          {/* Headline exposure over the selected horizon */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Stat
-              label={`Lapsing in ${horizon} days`}
-              value={`${summary.vehicleCount}`}
-              sub={`of ${summary.fleetSize} vehicles`}
-              tone="danger"
-            />
-            <Stat
-              label="Revenue at risk"
-              value={formatRand(summary.lostRevenue)}
-              sub={`if each is impounded ${impoundDays} day${impoundDays === 1 ? '' : 's'}`}
-              tone="warn"
-            />
-            <Stat
-              label="Uncovered route-days"
-              value={summary.uncoveredRouteDays.toLocaleString('en-ZA')}
-              sub="days a route runs with nothing behind it, same period"
-              tone="brand"
-            />
-          </div>
+      {/* Headline exposure over the selected horizon — always visible, even
+          collapsed on mobile, since these are the numbers that matter most
+          at a glance. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Stat
+          label={`Lapsing in ${horizon} days`}
+          value={`${summary.vehicleCount}`}
+          sub={`of ${summary.fleetSize} vehicles`}
+          tone="danger"
+        />
+        <Stat
+          label="Revenue at risk"
+          value={formatRand(summary.lostRevenue)}
+          sub={`if each is impounded ${impoundDays} day${impoundDays === 1 ? '' : 's'}`}
+          tone="warn"
+        />
+        <Stat
+          label="Uncovered route-days"
+          value={summary.uncoveredRouteDays.toLocaleString('en-ZA')}
+          sub="days a route runs with nothing behind it, same period"
+          tone="brand"
+        />
+      </div>
 
+      <button
+        onClick={() => setShowDetails((v) => !v)}
+        className="sm:hidden w-full mt-4 rounded-lg border border-slate-200 px-3 h-11 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        {showDetails ? 'Hide report details' : 'View report details'}
+      </button>
+
+      <div className={`${showDetails ? 'grid' : 'hidden'} sm:grid mt-5 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start`}>
+        <div>
           {/* When each vehicle falls out of compliance */}
-          <div className="mt-5">
+          <div>
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2.5">
               When compliance lapses
             </h3>
