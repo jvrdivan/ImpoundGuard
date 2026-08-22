@@ -144,11 +144,14 @@ export default function ScanPanel({ onConfirm, onClose }) {
           📷 Photograph or choose a certificate
         </button>
       )}
+      {/* No `capture` attribute: on mobile that forces the camera and removes
+          the gallery/file option entirely. Without it the OS offers both, so
+          an operator can photograph a certificate now or pick one they
+          already have. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFile}
         className="hidden"
       />

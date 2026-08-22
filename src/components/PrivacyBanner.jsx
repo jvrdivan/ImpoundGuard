@@ -27,7 +27,7 @@ export default function PrivacyBanner() {
         </div>
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 h-9 px-2.5 -mr-2 rounded-md text-xs font-semibold text-brand hover:bg-brand/5"
+          className="shrink-0 h-11 sm:h-9 px-2.5 -mr-2 rounded-md text-xs font-semibold text-brand hover:bg-brand/5"
         >
           {expanded ? 'Show less' : 'Learn more'}
         </button>

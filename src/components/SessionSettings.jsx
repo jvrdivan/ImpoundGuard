@@ -13,7 +13,7 @@
 
 export default function SessionSettings({ onSimulateScan, onResetDemoData, busy }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <h2 className="text-base font-semibold text-slate-900 mb-3">Demo controls</h2>
       <div className="flex flex-wrap gap-2">
         <button

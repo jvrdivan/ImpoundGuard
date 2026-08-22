@@ -16,15 +16,19 @@ export default function TopBar({ alerts, onViewVehicle, searchQuery, onSearchCha
         <div className="text-sm text-slate-500 mt-1">{today}</div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative">
+      {/* Full width on phones so the row wraps under the title instead of
+          running off the right edge — the scan button was landing off-screen,
+          which is the one control the whole demo depends on. The search box
+          flexes; the two buttons never shrink. */}
+      <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
+        <div className="relative flex-1 min-w-0 md:flex-none">
           <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search vehicles, plates, or driver"
-            className="w-64 h-11 rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
+            className="w-full md:w-64 h-11 rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
           />
         </div>
 
@@ -32,10 +36,11 @@ export default function TopBar({ alerts, onViewVehicle, searchQuery, onSearchCha
 
         <button
           onClick={onScanClick}
-          className="rounded-lg bg-brand px-4 h-11 text-sm font-semibold text-white hover:bg-brand/90 flex items-center gap-2 shrink-0"
+          className="rounded-lg bg-brand px-3 sm:px-4 h-11 text-sm font-semibold text-white hover:bg-brand/90 flex items-center gap-2 shrink-0"
         >
-          <CameraIcon className="w-4 h-4" />
-          Scan certificate
+          <CameraIcon className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">Scan certificate</span>
+          <span className="sm:hidden">Scan</span>
         </button>
       </div>
     </div>

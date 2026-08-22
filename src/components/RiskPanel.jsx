@@ -70,7 +70,7 @@ export default function RiskPanel({ ranked, onViewVehicle }) {
   const visible = showAll ? ranked : ranked.filter((r) => classifyStatus(r) !== STATUS.COMPLIANT);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-slate-900">Risk breakdown</h2>
@@ -81,7 +81,7 @@ export default function RiskPanel({ ranked, onViewVehicle }) {
         {hiddenCount > 0 && (
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="shrink-0 rounded-lg border border-slate-200 px-3 h-8 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+            className="shrink-0 rounded-lg border border-slate-200 px-3 h-11 sm:h-8 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
           >
             {showAll ? 'Hide compliant' : `View all (${hiddenCount} hidden)`}
           </button>
@@ -300,7 +300,7 @@ function BreakdownRow({ result, onViewVehicle, isHovered, isDimmed, onHoverStart
     <div className="relative" onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd}>
       <button
         onClick={() => onViewVehicle(vehicle.id)}
-        className={`w-full h-9 grid grid-cols-[minmax(0,1.7fr)_14px_minmax(0,1fr)_14px_minmax(0,1fr)_14px_minmax(0,1fr)_34px] items-center gap-2 text-left rounded-lg px-2 -mx-2 transition-opacity ${
+        className={`w-full h-11 sm:h-9 grid grid-cols-[minmax(0,1.7fr)_14px_minmax(0,1fr)_14px_minmax(0,1fr)_14px_minmax(0,1fr)_34px] items-center gap-2 text-left rounded-lg px-2 -mx-2 transition-opacity ${
           isHovered ? 'bg-slate-50' : ''
         } ${isDimmed ? 'opacity-30' : 'opacity-100'}`}
       >

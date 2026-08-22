@@ -47,16 +47,19 @@ export default function StatCards({ stats }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    // Two-up on phones: four full-width cards pushed the actual fleet data
+    // most of a screen further down, and these are glanceable numbers that
+    // read fine at half width.
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {cards.map((c) => (
-        <div key={c.label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
+        <div key={c.label} className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-2">
             <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
               {c.label}
             </span>
-            <c.icon className={`w-5 h-5 ${TONE_ICON_CLASS[c.tone]}`} />
+            <c.icon className={`w-5 h-5 shrink-0 ${TONE_ICON_CLASS[c.tone]}`} />
           </div>
-          <div className="mt-3 text-3xl font-bold text-slate-900 tabular-nums tracking-tight">{c.value}</div>
+          <div className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums tracking-tight">{c.value}</div>
           <div className="mt-1.5 text-xs text-slate-500">{c.sub}</div>
         </div>
       ))}

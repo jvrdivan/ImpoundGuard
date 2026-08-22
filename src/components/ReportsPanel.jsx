@@ -47,7 +47,7 @@ export default function ReportsPanel({ fleet, ranked }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <h2 className="text-base font-semibold text-slate-900">Reports</h2>
@@ -62,7 +62,7 @@ export default function ReportsPanel({ fleet, ranked }) {
               <button
                 key={h}
                 onClick={() => setHorizon(h)}
-                className={`px-3 h-9 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-3 h-11 sm:h-9 rounded-md text-xs font-semibold transition-colors ${
                   horizon === h ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -73,7 +73,7 @@ export default function ReportsPanel({ fleet, ranked }) {
 
           <button
             onClick={handleExport}
-            className="rounded-lg border border-slate-300 px-3 h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5"
+            className="rounded-lg border border-slate-300 px-3 h-11 sm:h-9 text-xs font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5"
           >
             <DownloadIcon className="w-3.5 h-3.5" />
             Export CSV
