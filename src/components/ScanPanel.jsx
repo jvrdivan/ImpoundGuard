@@ -9,11 +9,28 @@
 // being up. It is always labeled on screen when active; never presented as
 // a live call. See api/scan.js for the real extraction endpoint and its
 // 12s timeout, which is what routes here into manual entry on failure.
+//
+// The toggle persists in localStorage rather than plain useState: this panel
+// unmounts on close (App.jsx only renders it while scanPanelOpen is true),
+// so a plain default silently resets on every reopen — which is exactly how
+// two real certificates in a row both came back as the same canned vehicle.
+// Defaulting OFF means a fresh install calls the real pipeline unless
+// someone deliberately opts into demo mode for a rehearsal.
 
 import { useState, useRef } from 'react';
 import { downscaleImage } from '../lib/downscale';
 import { extractCertificate } from '../lib/api';
 import { DEMO_SCAN_RESULT } from '../data/demoScan';
+
+const DEMO_MODE_KEY = 'ig-demo-mode';
+
+function readDemoMode() {
+  try {
+    return localStorage.getItem(DEMO_MODE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 const BLANK_FIELDS = {
   docType: 'roadworthy',
@@ -25,13 +42,23 @@ const BLANK_FIELDS = {
 };
 
 export default function ScanPanel({ onConfirm, onClose }) {
-  const [demoMode, setDemoMode] = useState(true);
+  const [demoMode, setDemoModeState] = useState(readDemoMode);
   const [stage, setStage] = useState('idle'); // idle | scanning | confirming | error
   const [preview, setPreview] = useState(null);
   const [fields, setFields] = useState(BLANK_FIELDS);
   const [confidence, setConfidence] = useState(null);
   const [errorNote, setErrorNote] = useState(null);
   const fileInputRef = useRef(null);
+
+  const setDemoMode = (value) => {
+    setDemoModeState(value);
+    try {
+      localStorage.setItem(DEMO_MODE_KEY, String(value));
+    } catch {
+      // Storage unavailable (private browsing, quota) — the toggle still
+      // works for this session, it just won't persist across reopens.
+    }
+  };
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
