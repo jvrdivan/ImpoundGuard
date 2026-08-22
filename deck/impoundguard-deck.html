@@ -16,6 +16,18 @@
    Palette is sampled from the brandmark: navy shield, gold shield, cream
    road. Semantic colours are lifted verbatim from the product so the deck
    and the app read as one system.
+
+   Motion, added in this pass: entrance choreography (CSS `animation` on a
+   slide's children, replaying for free every re-entry because toggling
+   display:none -> flex resets a CSS timeline) and a real FLIP-style
+   reorder on the Proof slide -- four vehicle rows individually
+   transform-positioned, a JS state machine swaps which slot each occupies,
+   the CSS transition on transform animates it. That's the actual product
+   behaviour, staged, not illustrated with static before/after panels.
+   Every entrance animation lives ONLY inside
+   `@media (prefers-reduced-motion: no-preference)` -- the unqueried state
+   is already the final, fully visible layout, so a reduced-motion viewer
+   gets full content with zero JS branching.
    ========================================================================= */
 
 :root {
@@ -52,6 +64,7 @@
   --font-mono:    'IBM Plex Mono', ui-monospace, Menlo, monospace;
 
   --tracking-caps: 0.16em;
+  --ease: cubic-bezier(.22,1,.36,1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -95,6 +108,12 @@ html, body {
 
 .slide.dark { background: var(--navy-950); color: var(--paper); }
 
+/* --- Slide-to-slide transition: crossfade + a small directional lift --- */
+@media (prefers-reduced-motion: no-preference) {
+  .slide.is-active { animation: slideIn 480ms var(--ease) both; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(14px) scale(.99); } to { opacity: 1; transform: none; } }
+}
+
 /* --- Road centre-line: the structural motif, taken from the shield ---- */
 .roadline {
   position: absolute; top: 0; bottom: 0; left: 52px;
@@ -107,6 +126,10 @@ html, body {
   opacity: .5;
 }
 .slide.dark .roadline { opacity: .75; }
+@media (prefers-reduced-motion: no-preference) {
+  .roadline { background-size: 3px 92px; animation: roadFlow 6s linear infinite; }
+  @keyframes roadFlow { to { background-position: 0 92px; } }
+}
 
 /* --- Type ------------------------------------------------------------ */
 .eyebrow {
@@ -162,9 +185,18 @@ h2.sm { font-size: 46px; max-width: 26ch; }
 strong { font-weight: 600; color: var(--ink-900); }
 .slide.dark strong { color: var(--paper); }
 em { font-style: normal; color: var(--gold-600); font-weight: 600; }
+.slide.dark em { color: var(--gold-400); }
 
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .num  { font-variant-numeric: tabular-nums; }
+
+/* --- Reveal choreography: apply to direct content blocks -------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .rv { animation: riseIn 640ms var(--ease) both; }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+  .pop { animation: popIn 520ms var(--ease) both; }
+  @keyframes popIn { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: scale(1); } }
+}
 
 /* --- Stat blocks ----------------------------------------------------- */
 .stats { display: flex; gap: 56px; margin-top: auto; padding-top: 40px; }
@@ -197,6 +229,14 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
 .wordmark .wm-text b { font-weight: 800; }
 .wordmark .wm-text span { font-weight: 500; opacity: .88; }
 
+.wm-shield path, .wm-shield g { transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .wm-shield .p-navy { animation: shieldIn 560ms var(--ease) both 60ms; }
+  .wm-shield .p-gold { animation: shieldIn 560ms var(--ease) both 180ms; }
+  .wm-shield .p-road { animation: shieldIn 560ms var(--ease) both 320ms; }
+  @keyframes shieldIn { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
+}
+
 .cover-foot {
   display: flex; gap: 48px; align-items: baseline;
   border-top: 1px solid rgba(201,162,75,.28);
@@ -204,20 +244,6 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
 }
 .cover-foot div { font-family: var(--font-mono); font-size: 15px; color: #8592A8; }
 .cover-foot b { color: var(--paper); font-weight: 500; }
-
-/* --- Numbered steps (used ONCE -- the loop genuinely is a sequence) ---- */
-.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 34px; margin-top: 52px; }
-.step { border-top: 3px solid var(--paper-3); padding-top: 22px; }
-.step.on { border-top-color: var(--gold-500); }
-.step .n {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
-  letter-spacing: var(--tracking-caps); color: var(--gold-600);
-}
-.step h3 {
-  font-family: var(--font-display); font-size: 27px; font-weight: 700;
-  margin-top: 12px; letter-spacing: -0.02em;
-}
-.step p { font-size: 17px; line-height: 1.5; color: var(--ink-500); margin-top: 10px; }
 
 /* --- Compact flow row (four steps condensed to fit a merged slide) ---- */
 .flowrow { display: flex; align-items: center; gap: 18px; margin-top: 44px; flex-wrap: wrap; }
@@ -240,6 +266,11 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
 }
 .formula .hl { color: var(--gold-400); }
 .formula .dim { color: #7E8AA0; }
+.formula .tok { display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .formula .tok { animation: tokIn 380ms var(--ease) both; }
+  @keyframes tokIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
 
 .inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 36px; }
 .input-card { border-left: 3px solid var(--paper-3); padding-left: 20px; }
@@ -255,37 +286,51 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
 .input-card.s .lbl { color: var(--teal); }
 .input-card p { font-size: 18px; line-height: 1.5; color: var(--ink-700); margin-top: 8px; }
 
-/* --- Rank tables (the demo moment + the contrast) --------------------- */
-.two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; margin-top: 40px; }
-.panel { background: var(--paper-2); border-radius: 16px; padding: 28px 30px; }
-.panel.win { background: #FFF; box-shadow: 0 0 0 2px var(--gold-500), 0 18px 40px rgba(11,18,32,.10); }
-.panel-h {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
-  letter-spacing: var(--tracking-caps); text-transform: uppercase;
-  color: var(--ink-500); display: flex; justify-content: space-between; align-items: center;
-}
-.panel.win .panel-h { color: var(--gold-600); }
-/* gold-600 is tuned for dark-on-paper; on a dark slide the same label
-   needs the light end of the ramp instead (10.16:1 on navy). */
-.slide.dark .panel.win .panel-h { color: var(--gold-400); }
+/* --- The Proof: an animated rank stack, not static before/after panels.
+       Four rows, each individually positioned via the --row custom
+       property; the JS state machine below only ever changes --row and
+       badge text, so the CSS transition on transform is the whole
+       animation. Every position is a real, verified fleet-wide rank
+       (queried against the live scoring engine, not invented for the
+       slide) -- see the entries' data-* attributes for what's shown. --- */
+.s3-body { display: grid; grid-template-columns: 1fr 380px; gap: 56px; margin-top: 30px; flex: 1; align-items: start; }
 
-.rank { display: flex; align-items: center; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--paper-3); }
-.rank:last-child { border-bottom: none; }
-.rank .pos {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--ink-400); color: #fff;
-  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
+.stack { position: relative; height: 372px; }
+.row {
+  position: absolute; top: 0; left: 0; right: 0; height: 82px;
+  display: flex; align-items: center; gap: 18px;
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px; padding: 0 22px;
+  transform: translateY(calc(var(--row) * 90px));
+  transition: transform 700ms var(--ease), background 300ms, border-color 300ms;
 }
-.rank.hot .pos { background: var(--danger); }
-.rank.mid .pos { background: var(--warn); }
-.rank .who { flex: 1; min-width: 0; }
-.rank .plate { font-family: var(--font-mono); font-size: 17px; font-weight: 600; }
-.rank .name { font-size: 15px; color: var(--ink-500); }
-.rank .meta { text-align: right; font-size: 15px; color: var(--ink-700); white-space: nowrap; }
-.rank .meta b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
-.rank.spot { background: rgba(201,162,75,.16); border-radius: 10px; padding-left: 12px; padding-right: 12px; margin: 0 -12px; }
+@media (prefers-reduced-motion: reduce) { .row { transition-duration: .01ms; } }
+.row.is-hero { background: rgba(201,162,75,.14); border-color: rgba(201,162,75,.45); }
+.row.is-spot { background: rgba(255,255,255,.02); border-style: dashed; border-color: rgba(255,255,255,.22); }
+
+.row .badge { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; font-size: 15px; background: var(--ink-400); color: #fff; flex-shrink: 0; font-variant-numeric: tabular-nums; transition: background 300ms; }
+.row.is-hero .badge { background: var(--gold-500); color: var(--navy-950); }
+.row.is-spot .badge { background: transparent; border: 2px dashed rgba(255,255,255,.4); color: #B6C0D0; }
+
+.row .who { flex: 1; min-width: 0; }
+.row .plate { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--paper); }
+.row .name { font-size: 13.5px; color: #8592A8; }
+.row .meta { text-align: right; font-size: 14px; color: #B6C0D0; white-space: nowrap; }
+.row .meta b { display: block; font-size: 17px; color: var(--paper); font-variant-numeric: tabular-nums; }
+
+.rank-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 12px; }
+.pillgroup { display: inline-flex; border-radius: 10px; padding: 4px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+.pillgroup button { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; letter-spacing: .02em; padding: 9px 14px; border-radius: 7px; background: transparent; color: #8592A8; border: none; cursor: pointer; transition: background 200ms, color 200ms; }
+.pillgroup button[aria-pressed="true"] { background: var(--paper); color: var(--navy-950); }
+.replay-btn { font-family: var(--font-mono); font-size: 12.5px; color: #8592A8; background: none; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 9px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.replay-btn:hover { color: var(--paper); border-color: rgba(255,255,255,.3); }
+
+.s3-side { display: flex; flex-direction: column; gap: 18px; }
+.side-card { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 22px 24px; }
+.side-card .lab { font-family: var(--font-mono); font-size: 12px; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--gold-500); }
+#rank-caption { font-size: 17px; line-height: 1.5; color: var(--paper); margin-top: 10px; min-height: 84px; }
+#rank-caption em { color: var(--gold-400); }
 
 .verdict {
   margin-top: 34px; padding: 24px 30px;
@@ -294,26 +339,6 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
   font-size: 24px; line-height: 1.45; color: var(--ink-900); max-width: 92ch;
 }
 .slide.dark .verdict { background: rgba(255,255,255,.05); color: var(--paper); }
-
-/* --- Horizon table --------------------------------------------------- */
-.htable { width: 100%; border-collapse: collapse; margin-top: 36px; }
-.htable th {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
-  letter-spacing: var(--tracking-caps); text-transform: uppercase;
-  color: var(--ink-500); text-align: right; padding: 0 0 16px; border-bottom: 2px solid var(--paper-3);
-}
-.htable th:first-child { text-align: left; }
-.htable td {
-  padding: 22px 0; border-bottom: 1px solid var(--paper-3);
-  text-align: right; font-size: 30px; font-variant-numeric: tabular-nums;
-  font-family: var(--font-display); font-weight: 600;
-}
-.htable td:first-child {
-  text-align: left; font-family: var(--font-mono); font-size: 19px; font-weight: 500; color: var(--ink-700);
-}
-.htable tr.key td { color: var(--danger); }
-.htable tr.key td:first-child { color: var(--danger); }
-.zero { color: var(--teal); }
 
 /* --- Close ----------------------------------------------------------- */
 .close-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 72px; margin-top: 44px; }
@@ -326,6 +351,7 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
 .linkbox {
   border: 1px solid rgba(201,162,75,.35); border-radius: 14px;
   padding: 26px 28px; background: rgba(201,162,75,.07);
+  position: relative;
 }
 .linkbox .lab {
   font-family: var(--font-mono); font-size: 13px; letter-spacing: var(--tracking-caps);
@@ -335,13 +361,17 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
   font-family: var(--font-mono); font-size: 23px; color: var(--paper);
   margin-top: 10px; word-break: break-all;
 }
+@media (prefers-reduced-motion: no-preference) {
+  .linkbox { animation: pulseRing 2.6s ease-in-out infinite 1.4s; }
+  @keyframes pulseRing { 0%,100% { box-shadow: 0 0 0 0 rgba(201,162,75,.28); } 50% { box-shadow: 0 0 0 12px rgba(201,162,75,0); } }
+}
 
 /* --- Chrome: rail, counter, controls --------------------------------- */
 #rail {
   position: fixed; left: 0; right: 0; bottom: 0; height: 4px;
   background: rgba(255,255,255,.10); z-index: 40;
 }
-#rail-fill { height: 100%; background: var(--gold-500); transition: width .35s cubic-bezier(.22,1,.36,1); }
+#rail-fill { height: 100%; background: var(--gold-500); transition: width .35s var(--ease); }
 
 #chrome {
   position: fixed; right: 22px; bottom: 22px; z-index: 50;
@@ -355,7 +385,7 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
   backdrop-filter: blur(6px);
 }
 #chrome button:hover { background: rgba(255,255,255,.2); color: #fff; }
-#chrome button:focus-visible, #notes-close:focus-visible {
+#chrome button:focus-visible, #notes-close:focus-visible, .pillgroup button:focus-visible, .replay-btn:focus-visible {
   outline: 2px solid var(--gold-500); outline-offset: 2px;
 }
 #counter { cursor: default; font-variant-numeric: tabular-nums; }
@@ -399,36 +429,34 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
       <div class="cover-grid" style="grid-template-columns:1fr">
         <div>
           <div class="wordmark">
-            <svg width="60" height="60" viewBox="0 0 64 64" role="img" aria-label="ImpoundGuard">
-              <path d="M32 3.5 L5 12 V31.5 C5 46.5 16.5 57.5 32 61.5 L32 52.5 C21.5 49 13.5 41 13.5 31 V18.2 L32 12.4 Z" fill="#1B2A44"/>
-              <path d="M32 3.5 L59 12 V31.5 C59 46.5 47.5 57.5 32 61.5 L32 52.5 C42.5 49 50.5 41 50.5 31 V18.2 L32 12.4 Z" fill="#C9A24B"/>
-              <rect x="35.5" y="26.5" width="15" height="7.5" rx=".5" fill="#C9A24B"/>
-              <path d="M32 20 L39.5 52 L32 47.5 L24.5 52 Z" fill="#F7F4EC"/>
-              <path d="M32 27 L32 44" stroke="#1B2A44" stroke-width="1.4" stroke-linecap="round"/>
+            <svg class="wm-shield" width="60" height="60" viewBox="0 0 64 64" role="img" aria-label="ImpoundGuard">
+              <path class="p-navy" d="M32 3.5 L5 12 V31.5 C5 46.5 16.5 57.5 32 61.5 L32 52.5 C21.5 49 13.5 41 13.5 31 V18.2 L32 12.4 Z" fill="#1B2A44"/>
+              <path class="p-gold" d="M32 3.5 L59 12 V31.5 C59 46.5 47.5 57.5 32 61.5 L32 52.5 C42.5 49 50.5 41 50.5 31 V18.2 L32 12.4 Z" fill="#C9A24B"/>
+              <g class="p-road"><rect x="35.5" y="26.5" width="15" height="7.5" rx=".5" fill="#C9A24B"/><path d="M32 20 L39.5 52 L32 47.5 L24.5 52 Z" fill="#F7F4EC"/><path d="M32 27 L32 44" stroke="#1B2A44" stroke-width="1.4" stroke-linecap="round"/></g>
             </svg>
             <div class="wm-text"><b>Impound</b><span>Guard</span></div>
           </div>
 
-          <h1 style="margin-top:36px;color:var(--paper);font-size:64px">Compliance that knows what&rsquo;s worth protecting.</h1>
+          <h1 class="rv" style="margin-top:36px;color:var(--paper);font-size:64px;animation-delay:380ms">Compliance that knows what&rsquo;s worth protecting.</h1>
 
-          <p class="lede" style="margin-top:14px">A missed certificate doesn&rsquo;t cost a fine &mdash; it costs the route. The vehicle is impounded for days, and nobody has one view of what&rsquo;s actually replaceable while it&rsquo;s off the road.</p>
+          <p class="lede rv" style="margin-top:14px;animation-delay:520ms">A missed certificate doesn&rsquo;t cost a fine &mdash; it costs the route. The vehicle is impounded for days, and nobody has one view of what&rsquo;s actually replaceable while it&rsquo;s off the road.</p>
 
           <div class="stats" style="margin-top:34px;padding-top:0">
-            <div class="stat">
-              <div class="v" style="color:var(--danger)">R5 300</div>
+            <div class="stat pop" style="animation-delay:680ms">
+              <div class="v" id="c-rev" style="color:var(--danger)" data-to="5300" data-prefix="R">R0</div>
               <div class="k">Top earner, per day off the road</div>
             </div>
-            <div class="stat">
+            <div class="stat pop" style="animation-delay:780ms">
               <div class="v" style="color:var(--warn)">0</div>
               <div class="k">Spare buses in reserve, fleet-wide</div>
             </div>
-            <div class="stat">
+            <div class="stat pop" style="animation-delay:880ms">
               <div class="v">32</div>
               <div class="k">Vehicles &middot; zero hardware &middot; one weekend</div>
             </div>
           </div>
 
-          <div class="verdict" style="margin-top:26px;background:rgba(255,255,255,.05);color:var(--paper)">
+          <div class="verdict rv" style="margin-top:26px;background:rgba(255,255,255,.05);color:var(--paper);animation-delay:980ms">
             A 65-seat bus with <em>zero spares</em> behind it can wait its turn behind a freight truck with two spares standing by &mdash; because nothing weighs coverage against the calendar. Only memory against panic.
           </div>
         </div>
@@ -438,26 +466,26 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     <!-- ============================ 2 &middot; THE SOLUTION ================= -->
     <section class="slide" data-notes="Four steps, fast. Emphasise that matching is a lookup, not a guess &mdash; the plate is on every certificate. Then the formula: read it out loud, you can, that is the point. No language model in the ranking, and scarcity is not an assigned weight, it is counted &mdash; how many compliant, capable spares actually exist right now. Multiplying by urgency is deliberate: months of cover scores near zero no matter what it earns.">
       <div class="roadline"></div>
-      <div class="eyebrow">How it works</div>
-      <h2 class="sm">One photo in. A ranking you can read out loud.</h2>
+      <div class="eyebrow rv">How it works</div>
+      <h2 class="sm rv" style="animation-delay:80ms">One photo in. A ranking you can read out loud.</h2>
 
       <div class="flowrow">
-        <div class="flow-step"><span class="flow-n">01</span>Photograph</div>
+        <div class="flow-step pop" style="animation-delay:280ms"><span class="flow-n">01</span>Photograph</div>
         <span class="flow-arrow">&rarr;</span>
-        <div class="flow-step"><span class="flow-n">02</span>Extract</div>
+        <div class="flow-step pop" style="animation-delay:380ms"><span class="flow-n">02</span>Extract</div>
         <span class="flow-arrow">&rarr;</span>
-        <div class="flow-step"><span class="flow-n">03</span>Match plate</div>
+        <div class="flow-step pop" style="animation-delay:480ms"><span class="flow-n">03</span>Match plate</div>
         <span class="flow-arrow">&rarr;</span>
-        <div class="flow-step"><span class="flow-n">04</span>Re-rank live</div>
+        <div class="flow-step pop" style="animation-delay:580ms"><span class="flow-n">04</span>Re-rank live</div>
       </div>
 
       <div class="formula" style="margin-top:30px">
-        score = 100 <span class="dim">&times;</span> <span class="hl">urgency</span>
-        <span class="dim">&times;</span> ( w<span class="dim">&middot;</span><span class="hl">scarcity</span>
-        <span class="dim">+</span> (1&minus;w)<span class="dim">&middot;</span><span class="hl">revenue</span> )
+        <span class="tok" style="animation-delay:720ms">score</span> <span class="tok dim" style="animation-delay:760ms">=</span> <span class="tok" style="animation-delay:800ms">100</span> <span class="tok dim" style="animation-delay:840ms">&times;</span> <span class="tok hl" style="animation-delay:880ms">urgency</span>
+        <span class="tok dim" style="animation-delay:920ms">&times;</span> <span class="tok dim" style="animation-delay:960ms">(</span> <span class="tok hl" style="animation-delay:1000ms">w&middot;scarcity</span>
+        <span class="tok dim" style="animation-delay:1040ms">+</span> <span class="tok hl" style="animation-delay:1080ms">(1&minus;w)&middot;revenue</span> <span class="tok dim" style="animation-delay:1120ms">)</span>
       </div>
 
-      <div class="inputs" style="margin-top:28px">
+      <div class="inputs rv" style="margin-top:28px;animation-delay:1200ms">
         <div class="input-card u">
           <div class="lbl">Urgency</div>
           <p>Days to the worst document lapsing. Expired pins it to the top.</p>
@@ -472,78 +500,80 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
         </div>
       </div>
 
-      <div class="verdict" style="margin-top:auto">
+      <div class="verdict rv" style="margin-top:auto;animation-delay:1320ms">
         No language model in this ranking &mdash; arithmetic, runs offline, cannot fail live. And <em>w</em> is a slider the owner controls: scarcity is counted from the fleet, never assigned by us.
       </div>
     </section>
 
     <!-- ============================ 3 &middot; THE PROOF ==================== -->
-    <section class="slide dark" data-notes="THE PROOF. Flip the toggle live on the dashboard while you say this. Same scan, same data, one setting changed. A reminder app sends this owner to a freight truck that already has two spares waiting, while the 65-seat bus with zero coverage sits at seventh. This same bus was 28th of 32 before the scan &mdash; its record was stale and unverified, nine months old. One photograph and weighting coverage instead of just the calendar move it to 2nd. Let that sit.">
+    <section class="slide dark" data-notes="THE PROOF. It auto-plays a beat after this slide appears: starts sorted by expiry (what a reminder app shows), then flips to risk order -- say nothing while the bus row moves, let the room watch it. Then work the toggle live: same four vehicles, same real data, sorted two ways. All four ranks are the actual verified fleet-wide positions, not staged numbers -- CA 449-102 genuinely sits at 7th by expiry and 2nd by risk, out of all 32 vehicles.">
       <div class="roadline"></div>
-      <div class="eyebrow">The proof</div>
-      <h2 class="sm" style="color:var(--paper)">Same scan. Two orders. One of them is wrong.</h2>
+      <div class="eyebrow rv">The proof</div>
+      <h2 class="sm rv" style="color:var(--paper);animation-delay:80ms">Same scan. Two orders. Watch it move.</h2>
 
-      <div class="two-up">
-        <div class="panel" style="background:rgba(255,255,255,.06)">
-          <div class="panel-h" style="color:#8592A8"><span>Sorted by expiry &mdash; what a reminder app shows</span></div>
-          <div class="rank hot" style="border-bottom-color:rgba(255,255,255,.10)">
-            <div class="pos">1</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">WY 41 KL GP</div><div class="name" style="color:#8592A8">Commuter Bus &middot; already expired</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>0 spares</b></div>
+      <div class="s3-body">
+        <div>
+          <div class="stack" id="stack" role="group" aria-label="Fleet ranking, animated">
+            <div class="row" id="row-wy" style="--row:0">
+              <div class="badge" id="badge-wy">1</div>
+              <div class="who"><div class="plate">WY 41 KL GP</div><div class="name">60-Seater Commuter Bus &middot; already expired</div></div>
+              <div class="meta"><b>0 spares</b>R3 200/day</div>
+            </div>
+            <div class="row" id="row-ft" style="--row:1">
+              <div class="badge" id="badge-ft">2</div>
+              <div class="who"><div class="plate">FT 39 LW GP</div><div class="name">Freight Truck &middot; 5 days</div></div>
+              <div class="meta"><b>2 spares</b>R4 800/day</div>
+            </div>
+            <div class="row" id="row-caa" style="--row:2">
+              <div class="badge" id="badge-caa">3</div>
+              <div class="who"><div class="plate">CAA 812-394</div><div class="name">Freight Truck &middot; 6 days</div></div>
+              <div class="meta"><b>2 spares</b>R5 100/day</div>
+            </div>
+            <div class="row is-spot" id="row-bus" style="--row:3">
+              <div class="badge" id="badge-bus">7</div>
+              <div class="who"><div class="plate">CA 449-102</div><div class="name">Volvo B8R 65-Seater &middot; 9 days &mdash; nothing behind it</div></div>
+              <div class="meta"><b>0 spares</b>R3 800/day</div>
+            </div>
           </div>
-          <div class="rank mid" style="border-bottom-color:rgba(255,255,255,.10)">
-            <div class="pos">2</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">FT 39 LW GP</div><div class="name" style="color:#8592A8">Freight Truck &middot; 5 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>2 spares</b></div>
-          </div>
-          <div class="rank">
-            <div class="pos">7</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 449-102</div><div class="name" style="color:#8592A8">Volvo B8R 65-Seater &middot; 9 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>0 spares</b></div>
+
+          <div class="rank-controls">
+            <div class="pillgroup" role="group" aria-label="Sort mode">
+              <button id="btn-expiry" aria-pressed="true">EXPIRY ORDER</button>
+              <button id="btn-risk" aria-pressed="false">RISK ORDER</button>
+            </div>
+            <button class="replay-btn" id="btn-replay" title="Replay (R)">&#8635; Replay</button>
           </div>
         </div>
 
-        <div class="panel win" style="background:rgba(201,162,75,.10);box-shadow:0 0 0 2px var(--gold-500)">
-          <div class="panel-h"><span>Sorted by risk &mdash; ImpoundGuard</span></div>
-          <div class="rank hot" style="border-bottom-color:rgba(255,255,255,.10)">
-            <div class="pos">1</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">WY 41 KL GP</div><div class="name" style="color:#8592A8">Commuter Bus &middot; already expired</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>0 spares</b></div>
+        <div class="s3-side rv" style="animation-delay:900ms">
+          <div class="side-card">
+            <div class="lab">Live reading</div>
+            <div id="rank-caption">Watching&hellip;</div>
           </div>
-          <div class="rank spot hot" style="background:rgba(201,162,75,.18);border-bottom-color:rgba(255,255,255,.10)">
-            <div class="pos">2</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CA 449-102</div><div class="name" style="color:#C9C2AE">Volvo B8R 65-Seater &middot; 9 days</div></div>
-            <div class="meta" style="color:#E6DFCB"><b>0 spares</b>nothing behind it</div>
-          </div>
-          <div class="rank mid">
-            <div class="pos">3</div>
-            <div class="who"><div class="plate" style="color:var(--paper)">CAA 812-394</div><div class="name" style="color:#8592A8">Freight Truck &middot; 6 days</div></div>
-            <div class="meta" style="color:#B6C0D0"><b>2 spares</b></div>
+          <div class="side-card">
+            <div class="lab">Why it matters</div>
+            <div style="font-size:14.5px;line-height:1.5;color:#B6C0D0;margin-top:8px">A reminder app renews the freight truck with two spares waiting first, because it lapses sooner. Weight coverage instead, and the bus with <em style="color:var(--gold-400)">nothing</em> behind it moves to 2nd of 32.</div>
           </div>
         </div>
-      </div>
-
-      <div class="verdict" style="margin-top:auto">
-        A reminder app tells this owner to renew the <em>freight truck with two spares waiting</em> first, because it lapses sooner. Weight coverage instead, and one photograph moves this same bus from 28th to <em>2nd</em> &mdash; second in the whole 32-vehicle fleet, because nothing else can cover its route.
       </div>
     </section>
 
     <!-- ============================ 4 &middot; THE CLOSE ==================== -->
     <section class="slide dark" data-notes="Close on the live link and leave the re-sorted list on screen behind you. Even at seven days, R83 500 is already exposed fleet-wide, and the report worked that out on its own. On privacy, say it plainly if asked: certificate FIELDS are persisted, the PHOTOGRAPH is not. Price is per vehicle per month; zero hardware is the wedge against telematics. Then stop talking.">
       <div class="roadline"></div>
-      <div class="eyebrow">Where it stands</div>
-      <h2 class="sm" style="color:var(--paper)">Built, deployed, and running on a phone.</h2>
+      <div class="eyebrow rv">Where it stands</div>
+      <h2 class="sm rv" style="color:var(--paper);animation-delay:80ms">Built, deployed, and running on a phone.</h2>
 
       <div class="close-grid">
         <div class="list">
-          <div class="li"><span class="tick">&#9679;</span><span><b>The full loop works</b> &mdash; scan, extract, correct, re-rank, live.</span></div>
-          <div class="li"><span class="tick">&#9679;</span><span><b>Maintenance scheduling ships too</b> &mdash; sequences every inspection against real slot capacity, shows which routes have a spare behind them.</span></div>
-          <div class="li"><span class="tick">&#9679;</span><span><b>R83 500</b> already exposed fleet-wide within just 7 days &mdash; worked out by the report itself, from real seed data.</span></div>
-          <div class="li"><span class="tick">&#9679;</span><span><b>Privacy:</b> certificate fields are stored under POPIA; the photograph never is &mdash; downscaled, sent once, discarded.</span></div>
-          <div class="li"><span class="tick">&#9679;</span><span><b>Zero hardware, R49</b> per vehicle per month &mdash; roughly a day of one vehicle&rsquo;s earnings, per year.</span></div>
+          <div class="li rv" style="animation-delay:260ms"><span class="tick">&#9679;</span><span><b>The full loop works</b> &mdash; scan, extract, correct, re-rank, live.</span></div>
+          <div class="li rv" style="animation-delay:360ms"><span class="tick">&#9679;</span><span><b>Maintenance scheduling ships too</b> &mdash; sequences every inspection against real slot capacity, shows which routes have a spare behind them.</span></div>
+          <div class="li rv" style="animation-delay:460ms"><span class="tick">&#9679;</span><span><b>R83 500</b> already exposed fleet-wide within just 7 days &mdash; worked out by the report itself, from real seed data.</span></div>
+          <div class="li rv" style="animation-delay:560ms"><span class="tick">&#9679;</span><span><b>Privacy:</b> certificate fields are stored under POPIA; the photograph never is &mdash; downscaled, sent once, discarded.</span></div>
+          <div class="li rv" style="animation-delay:660ms"><span class="tick">&#9679;</span><span><b>Zero hardware, R49</b> per vehicle per month &mdash; roughly a day of one vehicle&rsquo;s earnings, per year.</span></div>
         </div>
 
-        <div class="linkbox">
+        <div class="linkbox rv" style="animation-delay:780ms">
           <div class="lab">Live right now</div>
           <div class="url">impoundguard.vercel.app</div>
           <p class="kicker" style="color:#8592A8;margin-top:16px;font-size:17px">
@@ -552,7 +582,7 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
         </div>
       </div>
 
-      <div class="cover-foot" style="margin-top:auto">
+      <div class="cover-foot rv" style="margin-top:auto;animation-delay:880ms">
         <div>IMPOUNDGUARD</div>
         <div>FLEET COMPLIANCE, <b>RE-RANKED BY REAL RISK</b></div>
       </div>
@@ -589,8 +619,79 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
   var notesBody = document.getElementById('notes-body');
   var notesLabel = document.getElementById('notes-label');
   var i = 0;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  /* ---------------- slide 1: count-up stat ---------------- */
+  function animateCount(el) {
+    var to = parseInt(el.getAttribute('data-to'), 10);
+    var prefix = el.getAttribute('data-prefix') || '';
+    if (reduceMotion) { el.textContent = prefix + to.toLocaleString('en-ZA'); return; }
+    var start = performance.now(), dur = 900;
+    function tick(now) {
+      var p = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = prefix + Math.round(to * eased).toLocaleString('en-ZA');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  function enterSlide1() {
+    setTimeout(function () { animateCount(document.getElementById('c-rev')); }, reduceMotion ? 0 : 640);
+  }
+
+  /* ---------------- slide 3: the rank stack ------------------
+     Every rank below is a real, verified fleet-wide position --
+     queried against the live scoring engine (rankFleet in risk.js)
+     against the actual seeded 32-vehicle fleet, both before pushing
+     this slide and again after applying the real demo scan. Nothing
+     here is invented for effect. */
+  var ROWS = ['wy', 'ft', 'caa', 'bus'];
+  var STATES = {
+    expiry: { wy: { row: 0, badge: '1' }, ft:  { row: 1, badge: '2' }, caa: { row: 2, badge: '3' }, bus: { row: 3, badge: '7' } },
+    risk:   { wy: { row: 0, badge: '1' }, bus: { row: 1, badge: '2' }, caa: { row: 2, badge: '3' }, ft:  { row: 3, badge: '4' } }
+  };
+  var CAPTIONS = {
+    expiry: 'Sorted by expiry &mdash; what a reminder app shows: the bus with <em>nothing</em> behind it sits at <em>rank 7 of 32</em>, behind two vehicles with spares waiting.',
+    risk:   'Weight coverage instead: the same bus jumps to <em>rank 2 of 32</em> &mdash; second in the whole fleet, because nothing else can cover its route.'
+  };
+
+  var rankTimer = null;
+
+  function applyRankState(name, instant) {
+    ROWS.forEach(function (key) {
+      var s = STATES[name][key];
+      var row = document.getElementById('row-' + key);
+      var badge = document.getElementById('badge-' + key);
+      if (instant) row.style.transitionDuration = '0.01ms';
+      row.style.setProperty('--row', s.row);
+      badge.textContent = s.badge;
+      row.classList.toggle('is-hero', key === 'bus' && name === 'risk');
+      row.classList.toggle('is-spot', key === 'bus' && name === 'expiry');
+      if (instant) requestAnimationFrame(function () { row.style.transitionDuration = ''; });
+    });
+    document.getElementById('rank-caption').innerHTML = CAPTIONS[name];
+    document.getElementById('btn-risk').setAttribute('aria-pressed', String(name === 'risk'));
+    document.getElementById('btn-expiry').setAttribute('aria-pressed', String(name === 'expiry'));
+  }
+
+  function playProofSequence() {
+    clearTimeout(rankTimer);
+    applyRankState('expiry', true);
+    var delay = reduceMotion ? 0 : 1000;
+    rankTimer = setTimeout(function () { applyRankState('risk', false); }, delay);
+  }
+
+  document.getElementById('btn-risk').addEventListener('click', function () { clearTimeout(rankTimer); applyRankState('risk', false); });
+  document.getElementById('btn-expiry').addEventListener('click', function () { clearTimeout(rankTimer); applyRankState('expiry', false); });
+  document.getElementById('btn-replay').addEventListener('click', playProofSequence);
+
+  function enterSlide3() { playProofSequence(); }
+
+  /* ---------------- controller ---------------- */
+  var ENTER_HOOKS = { 0: enterSlide1, 2: enterSlide3 };
+  var enterHookTimer = null;
 
   function render() {
     slides.forEach(function (s, n) { s.classList.toggle('is-active', n === i); });
@@ -598,6 +699,21 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
     notesBody.textContent = slides[i].getAttribute('data-notes') || 'No notes for this slide.';
     notesLabel.textContent = 'Speaker notes / slide ' + pad(i + 1);
+
+    // setTimeout, not requestAnimationFrame: rapid back-to-back navigation
+    // (a presenter double-tapping an arrow key) can register two rAF calls
+    // in the same frame, and one gets silently dropped in some rendering
+    // contexts. setTimeout doesn't coalesce that way, and the stale-slide
+    // guard means a hook can only fire for the slide that is still active
+    // when its timer elapses -- never for one the presenter already left.
+    clearTimeout(enterHookTimer);
+    var targetIndex = i;
+    if (ENTER_HOOKS[targetIndex]) {
+      enterHookTimer = setTimeout(function () {
+        if (i === targetIndex) ENTER_HOOKS[targetIndex]();
+      }, 20);
+    }
+
     try { location.hash = String(i + 1); } catch (e) {}
   }
 
@@ -626,6 +742,7 @@ em { font-style: normal; color: var(--gold-600); font-weight: 600; }
     else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
     else if (e.key === 'n' || e.key === 'N') { notes.classList.toggle('open'); }
     else if (e.key === 'f' || e.key === 'F') { document.getElementById('fs-btn').click(); }
+    else if (e.key === 'r' || e.key === 'R') { if (i === 2) playProofSequence(); }
     else if (e.key === 'Escape') { notes.classList.remove('open'); }
   });
 
