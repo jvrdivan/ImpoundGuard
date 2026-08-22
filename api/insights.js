@@ -28,6 +28,7 @@ Rules:
 - Base every claim ONLY on the data given below. Never invent a vehicle, plate, route, or number that isn't present in the data.
 - Reference real plates and figures from the data in your observations, not vague generalities.
 - If the data shows nothing urgent, say that plainly rather than manufacturing urgency.
+- All money figures in the data (dailyIncome, dailyRevenueExposed) are South African Rand. Write them with an "R" prefix and comma thousands separators (e.g. "R4,200"), never "$" or "USD".
 - Each observation needs a short title (under 8 words) and one sentence of detail.
 - Assign each observation a "tone": "critical" for anything needing action today, "warn" for things needing attention soon, "info" for a neutral or positive observation.
 
