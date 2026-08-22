@@ -14,7 +14,7 @@ const TONE_ICON_CLASS = {
   unassessed: 'text-unassessed',
 };
 
-export default function StatCards({ stats }) {
+export default function StatCards({ stats, onNavigate }) {
   const cards = [
     {
       label: 'Vehicles at risk',
@@ -22,6 +22,9 @@ export default function StatCards({ stats }) {
       sub: `of ${stats.totalVehicles} in the fleet`,
       tone: stats.atRiskCount > 0 ? 'danger' : 'brand',
       icon: WarnIcon,
+      // Same destination as the sidebar's Fleet link — this count is the
+      // action queue's row count, so "show me" means "take me there".
+      navKey: 'fleet',
     },
     {
       label: 'Daily revenue exposed',
@@ -29,6 +32,7 @@ export default function StatCards({ stats }) {
       sub: 'per day if impounded',
       tone: 'warn',
       icon: RandIcon,
+      navKey: 'reports',
     },
     {
       label: 'Routes uncoverable',
@@ -36,6 +40,9 @@ export default function StatCards({ stats }) {
       sub: 'at-risk vehicles with zero compatible spares',
       tone: 'brand',
       icon: RouteIcon,
+      // "Uncoverable" is exactly what the maintenance schedule works out
+      // week by week, so that's where this count leads.
+      navKey: 'schedule',
     },
     {
       label: 'Unassessed',
@@ -43,6 +50,10 @@ export default function StatCards({ stats }) {
       sub: 'no document on file',
       tone: 'unassessed',
       icon: DocQuestionIcon,
+      // No single panel answers "which ones" better than any other —
+      // left as a plain stat rather than picking a destination that isn't
+      // clearly right.
+      navKey: null,
     },
   ];
 
@@ -51,18 +62,27 @@ export default function StatCards({ stats }) {
     // most of a screen further down, and these are glanceable numbers that
     // read fine at half width.
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((c) => (
-        <div key={c.label} className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-              {c.label}
-            </span>
-            <c.icon className={`w-5 h-5 shrink-0 ${TONE_ICON_CLASS[c.tone]}`} />
-          </div>
-          <div className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums tracking-tight">{c.value}</div>
-          <div className="mt-1.5 text-xs text-slate-500">{c.sub}</div>
-        </div>
-      ))}
+      {cards.map((c) => {
+        const Wrapper = c.navKey ? 'button' : 'div';
+        return (
+          <Wrapper
+            key={c.label}
+            {...(c.navKey ? { onClick: () => onNavigate(c.navKey), type: 'button' } : {})}
+            className={`rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm text-left w-full ${
+              c.navKey ? 'hover:border-slate-300 hover:shadow-md transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/50' : ''
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                {c.label}
+              </span>
+              <c.icon className={`w-5 h-5 shrink-0 ${TONE_ICON_CLASS[c.tone]}`} />
+            </div>
+            <div className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums tracking-tight">{c.value}</div>
+            <div className="mt-1.5 text-xs text-slate-500">{c.sub}</div>
+          </Wrapper>
+        );
+      })}
     </div>
   );
 }

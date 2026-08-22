@@ -184,7 +184,7 @@ export default function App() {
 
         <PrivacyBanner />
 
-        <StatCards stats={stats} />
+        <StatCards stats={stats} onNavigate={handleNavigate} />
 
         <AIInsightsPanel buildSummary={() => buildInsightsSummary(ranked)} />
 
